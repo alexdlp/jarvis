@@ -29,6 +29,7 @@ export TF_VAR_region := $(REGION)
 
 # Directory holding the terraform configuration.
 INFRA := infra
+BUILD := build
 
 # Terminal colors for the help output. Defined once so the targets below stay
 # readable.
@@ -69,15 +70,15 @@ init:
 ##
 ## Worth reading every time: this is the only point where "2 to add, 0 to
 ## destroy" is visible before it happens rather than after.
-plan:
+plan: build
 	@cd $(INFRA) && terraform plan
 
 ## Create or update the infrastructure. Prompts for confirmation.
-apply:
+apply: build
 	@cd $(INFRA) && terraform apply
 
 ## Destroy every resource in this configuration. Prompts for confirmation.
-destroy:
+destroy: build
 	@cd $(INFRA) && terraform destroy
 
 ## Print the gateway's public base URL.
@@ -126,3 +127,16 @@ list-users:
 	 pool=$$(cd $(INFRA) && terraform output -raw cognito_user_pool_id); \
 	 aws cognito-idp list-users --user-pool-id "$$pool" --region $(REGION) \
 	   --query 'Users[].[Username,UserStatus]' --output table
+
+## Assemble the lambda deployment package in build/.
+##
+## Today this is only a copy: the handler has no dependencies. When the MCP SDK
+## arrives its wheels get installed into this same directory and nothing else
+## in the pipeline changes.
+##
+## The directory is rebuilt from scratch rather than updated in place, so a
+## file deleted from src/ cannot linger in a stale build and get deployed.
+build:
+	@rm -rf $(BUILD) && mkdir -p $(BUILD)
+	@cp -R src/jarvis $(BUILD)/jarvis
+	@printf "  $(GREEN)package ready$(RESET)  $(DIM)%s$(RESET)\n" "$$(du -sh $(BUILD) | cut -f1)"

@@ -13,3 +13,5 @@ wheels/
 infra/.terraform/
 infra/*.tfstate*
 
+
+infra/jarvis.zip
