@@ -11,8 +11,8 @@
 # door to a REST API or a lambda function URL. Neither is needed while every 
 # tool is a short request/response call.
 
-resource "aws_apigatewayv2_api" "mcp" {
-  name = "jarvis-mcp"
+resource "aws_apigatewayv2_api" "main" {
+  name = "jarvis-api"
 
   # "HTTP" as opposed to "WEBSOCKET". MCP's streamable transport runs over
   # plain HTTP; the long-lived SSE half of that transport is the part this
@@ -31,7 +31,7 @@ resource "aws_apigatewayv2_api" "mcp" {
 # snapshot at a different path. That one-to-many relationship is why these are
 # two resources rather than one.
 resource "aws_apigatewayv2_stage" "default" {
-  api_id = aws_apigatewayv2_api.mcp.id
+  api_id = aws_apigatewayv2_api.main.id
   name   = "$default"
 
   # Route and integration changes go live as soon as terraform applies them.
