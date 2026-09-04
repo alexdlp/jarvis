@@ -9,7 +9,7 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help init plan apply destroy url create-user list-users
+.PHONY: help init plan apply destroy url create-user list-users build
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -37,6 +37,7 @@ BUILD := build
 RESET := \033[0m
 BOLD  := \033[1m
 GREEN := \033[0;32m
+RED   := \033[0;31m
 BLUE  := \033[0;34m
 DIM   := \033[2m
 
@@ -118,25 +119,49 @@ create-user:
 	 printf "  $(GREEN)created$(RESET)  $(DIM)%s$(RESET)\n" "$(EMAIL)"
 
 
-## List the users in the pool and their status.
-##
-## UserStatus should read CONFIRMED. FORCE_CHANGE_PASSWORD means the permanent
-## password was never set and the first login will demand a change.
+  ## List the users in the pool and their status.
+  ##
+  ## UserStatus should read CONFIRMED. FORCE_CHANGE_PASSWORD means the permanent
+  ## password was never set and the first login will demand a change.
+  ##
+  ## The empty case is handled explicitly because `--output table` prints
+  ## absolutely nothing for an empty result — no header, no row — which is
+  ## indistinguishable from the command having failed. An empty pool is a normal
+  ## state worth saying out loud, especially since `terraform destroy` takes the
+  ## users with the pool: they are not terraform resources, but they live inside
+  ## one, so they never appear in a plan and never come back with an apply.
 list-users:
 	@set -e; \
-	 pool=$$(cd $(INFRA) && terraform output -raw cognito_user_pool_id); \
-	 aws cognito-idp list-users --user-pool-id "$$pool" --region $(REGION) \
-	   --query 'Users[].[Username,UserStatus]' --output table
+		pool=$$(cd $(INFRA) && terraform output -raw cognito_user_pool_id); \
+		count=$$(aws cognito-idp list-users --user-pool-id "$$pool" --region $(REGION) \
+		--query 'length(Users)' --output text); \
+		if [ "$$count" = "0" ]; then \
+		printf "  $(DIM)no users in$(RESET) %s\n" "$$pool"; \
+		printf "  $(DIM)create one:$(RESET) make create-user EMAIL=you@example.com\n"; \
+		else \
+		aws cognito-idp list-users --user-pool-id "$$pool" --region $(REGION) \
+             --query "Users[].[Attributes[?Name=='email'].Value|[0],UserStatus,UserCreateDate]" \
+             --output table; \
+		fi
 
 ## Assemble the lambda deployment package in build/.
 ##
-## Today this is only a copy: the handler has no dependencies. When the MCP SDK
-## arrives its wheels get installed into this same directory and nothing else
-## in the pipeline changes.
+## Dependencies are installed for the Lambda runtime's platform, not this
+## machine's. pydantic_core and cryptography ship compiled extensions, so a
+## plain install on macOS produces Darwin .so files and the function dies
+## importing pydantic before reaching a line of our own code.
 ##
-## The directory is rebuilt from scratch rather than updated in place, so a
-## file deleted from src/ cannot linger in a stale build and get deployed.
+## -r pyproject.toml keeps the dependency list in one place: adding a package
+## there is all it takes for the next build to include it.
+##
+## The flags mirror lambda.tf — runtime python3.13, architectures ["arm64"].
+## If either changes there, it changes here too.
 build:
 	@rm -rf $(BUILD) && mkdir -p $(BUILD)
+	@uv pip install --quiet \
+		--python-platform aarch64-manylinux_2_17 \
+		--python-version 3.13 \
+		--target $(BUILD) \
+		-r pyproject.toml
 	@cp -R src/jarvis $(BUILD)/jarvis
-	@printf "  $(GREEN)package ready$(RESET)  $(DIM)%s$(RESET)\n" "$$(du -sh $(BUILD) | cut -f1)"
+	@printf "  $(GREEN)package ready$(RESET) $(DIM)%s$(RESET)\n" "$$(du -sh $(BUILD) | cut -f1)"

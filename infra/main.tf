@@ -15,8 +15,8 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.7"
     }
-    }
-  
+  }
+
 }
 
 provider "aws" {

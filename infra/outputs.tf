@@ -50,3 +50,14 @@ output "cognito_user_pool_id" {
   value       = aws_cognito_user_pool.users.id
   description = "User pool id, for the aws cognito-idp CLI."
 }
+
+
+# The MCP endpoint itself, which is what gets pasted into an MCP client.
+#
+# trimsuffix is not decoration: invoke_url for a "$default" stage ends in a
+# slash, so plain concatenation would produce a double slash that matches no
+# route and returns 404.
+output "mcp_url" {
+  value       = "${trimsuffix(aws_apigatewayv2_stage.default.invoke_url, "/")}/mcp"
+  description = "The MCP endpoint. Currently unauthenticated."
+}

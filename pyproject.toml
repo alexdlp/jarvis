@@ -7,9 +7,13 @@ authors = [
     { name = "AlexNitid", email = "alex.delapuente@nitid.ai" }
 ]
 requires-python = ">=3.13"
-dependencies = [
-    "mcp>=2.1.1",
-]
+  dependencies = [
+      "mcp>=2.1.1",
+      # ASGI -> Lambda adapter. The MCP SDK's streamable HTTP transport is a
+      # Starlette app; Mangum is what turns an API Gateway event into an ASGI
+      # request and the ASGI response back into a Lambda result.
+      "mangum>=0.22",
+  ]
 
 [project.scripts]
 jarvis = "jarvis:main"

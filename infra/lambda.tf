@@ -66,9 +66,16 @@ resource "aws_iam_role_policy_attachment" "logs" {
 # grows, CI builds the zip and uploads it to S3 with a version, and this block
 # is replaced by a reference to that object.
 data "archive_file" "lambda" {
-  type        = "zip"
-  source_dir  = "${path.module}/../build"
-  output_path = "${path.module}/jarvis.zip"
+  type       = "zip"
+  source_dir = "${path.module}/../build"
+
+  # dist/ rather than infra/: this is a build artifact and has no business
+  # sitting among the terraform configuration. Nor can it live inside build/ —
+  # that is source_dir, so the archive would be writing into the very tree it
+  # reads and would end up trying to include itself.
+  #
+  # The provider creates the directory, so nothing has to mkdir it first.
+  output_path = "${path.module}/../dist/lambda.zip"
 }
 
 # Declared explicitly rather than left to Lambda.
@@ -121,4 +128,18 @@ resource "aws_lambda_function" "mcp_server" {
     aws_cloudwatch_log_group.lambda,
     aws_iam_role_policy_attachment.logs,
   ]
+
+  # The metadata document has to name its own URL and its issuer, and neither
+  # exists until apply. Passing them in from terraform keeps the values in the
+  # one place that knows them, instead of hardcoding account-specific ids into
+  # the source.
+  #
+  # Built from the api id rather than the stage's invoke_url on purpose: the
+  # stage would add a dependency the function does not otherwise need.
+  environment {
+    variables = {
+      MCP_RESOURCE_URL = "https://${aws_apigatewayv2_api.main.id}.execute-api.${var.region}.amazonaws.com/mcp"
+      COGNITO_ISSUER   = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.users.id}"
+    }
+  }
 }
