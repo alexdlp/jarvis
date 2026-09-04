@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title description">
+  <title id="title">Jarvis current AWS architecture</title>
+  <desc id="description">An MCP client authenticates with Amazon Cognito and sends HTTPS requests to Amazon API Gateway. API Gateway validates JWTs and invokes an AWS Lambda MCP server. API Gateway and Lambda send separate logs to Amazon CloudWatch.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-blue-start" markerWidth="10" markerHeight="10" refX="2" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M10,0 L0,5 L10,10 Z" fill="#2563eb"/>
+    </marker>
+
+    <!-- Official AWS Architecture Icons, Q3 2026 -->
+    <symbol id="aws-api-gateway" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#8C4FFF"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M34.065 55.6324H37V53.6153H34.065V55.6324ZM39 55.6324H42V53.6153H39V55.6324ZM27 14.6295L14 21.0821V61.1934L27 65.5896V14.6295ZM29 27.3934V53.6153H32V55.6324H29V66.9915C29 67.3162 28.845 67.6208 28.584 67.8104C28.412 67.9355 28.207 68 28 68C27.894 68 27.786 67.9829 27.682 67.9476L12.682 62.8756C12.274 62.7375 12 62.3522 12 61.9196V20.4537C12 20.0705 12.217 19.7185 12.559 19.5491L27.559 12.1041C27.868 11.9498 28.235 11.9679 28.528 12.1525C28.821 12.3361 29 12.6598 29 13.0087V25.3764H32V27.3934H29ZM44 55.6324H47V53.6153H44V55.6324ZM44.065 27.3934H47V25.3764H44.065V27.3934ZM39.065 27.3934H42V25.3764H39.065V27.3934ZM34.065 27.3934H37V25.3764H34.065V27.3934ZM66 21.0821L53 14.6295V65.5896L66 61.1934V21.0821ZM68 61.9196C68 62.3522 67.726 62.7375 67.318 62.8756L52.318 67.9476C52.214 67.9829 52.106 68 52 68C51.793 68 51.588 67.9355 51.416 67.8104C51.155 67.6208 51 67.3162 51 66.9915V55.6324H49.065V53.6153H51V27.3934H49.065V25.3764H51V13.0087C51 12.6598 51.179 12.3361 51.472 12.1525C51.765 11.9679 52.131 11.9498 52.441 12.1041L67.441 19.5491C67.783 19.7185 68 20.0705 68 20.4537V61.9196ZM42.934 33.8067L41.066 33.0826L36.066 46.1935L37.934 46.9176L42.934 33.8067ZM49.707 40.2089C50.098 39.8145 50.098 39.1761 49.707 38.7828L45.707 34.7487L44.293 36.1747L47.586 39.4958L44.293 42.8169L45.707 44.243L49.707 40.2089ZM34.293 44.243L30.293 40.2089C29.902 39.8145 29.902 39.1761 30.293 38.7828L34.293 34.7487L35.707 36.1747L32.414 39.4958L35.707 42.8169L34.293 44.243Z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="aws-lambda" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#ED7100"/>
+      <path d="M28.0075 66H15.5907L29.3236 37.296L35.546 50.106L28.0075 66ZM30.2197 34.553C30.0513 34.208 29.7005 33.989 29.3176 33.989C28.9287 33.99 28.5779 34.211 28.4125 34.558L13.0979 66.569C12.9496 66.879 12.9706 67.243 13.1551 67.534C13.3375 67.824 13.6582 68 14.002 68H28.642C29.0299 68 29.3817 67.777 29.5481 67.428L37.5637 50.528C37.693 50.254 37.692 49.937 37.5587 49.665L30.2197 34.553ZM64.9953 66H52.6587L32.8668 24.57C32.7014 24.222 32.3486 24 31.9617 24H23.89L23.899 14H39.7197L59.4204 55.429C59.5858 55.777 59.9386 56 60.3255 56H64.9953V66ZM65.9977 54H60.96L41.2593 12.571C41.0939 12.223 40.7411 12 40.3532 12H22.8977C22.3454 12 21.8964 12.447 21.8954 12.999L21.8843 24.999C21.8843 25.265 21.9886 25.519 22.178 25.707C22.3654 25.895 22.62 26 22.8867 26H31.3292L51.1222 67.43C51.2885 67.778 51.6394 68 52.0263 68H65.9977C66.552 68 67 67.552 67 67V55C67 54.448 66.552 54 65.9977 54Z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="aws-cognito" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#DD344C"/>
+      <path d="M16.9636 35.8079H29.8688V33.8254H16.9636V35.8079ZM61.3755 50.2309L62.7792 51.6325L55.4073 58.9937C55.2128 59.187 54.9586 59.2842 54.7055 59.2842C54.4514 59.2842 54.1972 59.187 54.0036 58.9937L50.2949 55.2913L51.6986 53.8897L54.7055 56.8912L61.3755 50.2309ZM65.944 55.6938C65.7176 57.5574 64.9592 59.2911 63.7471 60.7086C62.8864 61.7157 61.7994 62.5484 60.6042 63.1154C59.001 63.8757 57.2200 64.1642 55.4460 63.9481C53.7207 63.7379 52.0947 63.0579 50.7396 61.9824C48.1367 59.9156 46.8224 56.7108 47.2224 53.4089C47.6006 50.2884 49.4918 47.5664 52.2803 46.127C53.6165 45.4381 55.0797 45.0842 56.5698 45.0842C56.952 45.0842 57.3372 45.108 57.7213 45.1546C60.8345 45.5343 63.5496 47.4365 64.9810 50.2428C65.8397 51.926 66.1723 53.8114 65.944 55.6938ZM66.7501 49.3437C65.0178 45.9476 61.7319 43.6459 57.9616 43.1869C55.6813 42.9084 53.4030 43.3168 51.3690 44.3655C47.9957 46.1062 45.7085 49.3982 45.2509 53.171C44.7684 57.1609 46.3578 61.0357 49.5047 63.5347C51.1456 64.8372 53.1171 65.6610 55.2048 65.9157C55.6674 65.9722 56.1300 66 56.5916 66C58.2713 66 59.9301 65.6293 61.4559 64.9056C62.9023 64.2197 64.2177 63.2126 65.2570 61.9953C66.7233 60.2804 67.6425 58.1838 67.9155 55.9317C68.1915 53.6567 67.7884 51.3788 66.7501 49.3437ZM26.8907 41.7555H30.8615V39.773H26.8907V41.7555ZM16.9636 41.7555H24.9053V39.773H16.9636V41.7555ZM16.1059 15.9825H60.5079C61.6773 15.9825 62.6283 17.1393 62.6283 18.5608V25.8952H59.6502V20.9389C59.6502 20.3917 59.2064 19.9476 58.6575 19.9476H35.8251C35.2761 19.9476 34.8324 20.3917 34.8324 20.9389V25.8952H13.9854V18.5608C13.9854 17.1631 14.9573 15.9825 16.1059 15.9825ZM47.2562 25.6078C49.5613 25.6078 51.4365 27.4614 51.4365 29.7394C51.4365 31.2411 50.6076 32.6230 49.2734 33.3466C48.0067 34.0336 46.4799 34.0246 45.2300 33.3476C43.9008 32.6220 43.0759 31.2402 43.0759 29.7394C43.0759 27.4614 44.9501 25.6078 47.2562 25.6078ZM13.9854 47.1084V27.8778H34.8324V44.7293C34.8324 45.2775 35.2761 45.7206 35.8251 45.7206H46.2029V43.7381H37.9118C37.9981 39.7710 40.6358 36.3442 44.4339 35.2498C46.1890 36.0696 48.2846 36.0775 50.0665 35.2488C52.2287 35.8733 54.1208 37.3176 55.2932 39.2536L56.9917 38.2266C55.7885 36.2431 53.9629 34.6947 51.8455 33.7947C52.8382 32.6943 53.4219 31.2630 53.4219 29.7394C53.4219 26.3681 50.6552 23.6252 47.2562 23.6252C43.8561 23.6252 41.0904 26.3681 41.0904 29.7394C41.0904 31.2570 41.6682 32.6834 42.6540 33.7838C40.0004 34.8999 37.9277 36.9925 36.8178 39.5728V21.9302H57.6648V37.7905H59.6502V27.8778H62.6283L62.6293 42.7468H64.6147L64.6137 18.5608C64.6137 16.046 62.7723 14 60.5079 14H16.1059C13.8415 14 12 16.046 12 18.5608V47.1084C12 49.6232 13.8415 51.6682 16.1059 51.6682H42.7741V49.6857H16.1059C14.9573 49.6857 13.9854 48.5061 13.9854 47.1084Z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="aws-cloudwatch" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#E7157B"/>
+      <path d="M55.0592 46.7774C55.0592 42.8680 51.8576 39.6876 47.9221 39.6876C43.9866 39.6876 40.7859 42.8680 40.7859 46.7774C40.7859 50.6867 43.9866 53.8671 47.9221 53.8671C51.8576 53.8671 55.0592 50.6867 55.0592 46.7774ZM57.0697 46.7774C57.0697 51.7881 52.9663 55.8642 47.9221 55.8642C42.8788 55.8642 38.7754 51.7881 38.7754 46.7774C38.7754 41.7666 42.8788 37.6905 47.9221 37.6905C52.9663 37.6905 57.0697 41.7666 57.0697 46.7774ZM65.5097 60.4736L58.5012 54.2026C57.9352 54.9945 57.2808 55.7174 56.5540 56.3635L63.5525 62.6334C64.1496 63.1687 65.0784 63.1187 65.6182 62.5256C66.1550 61.9324 66.1068 61.0108 65.5097 60.4736ZM47.9221 57.6616C53.9645 57.6616 58.8801 52.7787 58.8801 46.7774C58.8801 40.7751 53.9645 35.8931 47.9221 35.8931C41.8806 35.8931 36.9650 40.7751 36.9650 46.7774C36.9650 52.7787 41.8806 57.6616 47.9221 57.6616ZM67.1120 63.8626C66.4264 64.6166 65.4785 65 64.5285 65C63.7002 65 62.8699 64.7084 62.2075 64.1173L54.9306 57.5987C52.9070 58.8968 50.5055 59.6587 47.9221 59.6587C40.7718 59.6587 34.9545 53.8801 34.9545 46.7774C34.9545 39.6746 40.7718 33.8960 47.9221 33.8960C55.0733 33.8960 60.8906 39.6746 60.8906 46.7774C60.8906 48.8154 60.3990 50.7366 59.5466 52.4512L66.8557 58.9907C68.2751 60.2659 68.3896 62.4497 67.1120 63.8626ZM21.2803 29.3925C21.2803 29.9118 21.3125 30.4290 21.3738 30.9293C21.4090 31.2139 21.3205 31.4985 21.1295 31.7132C20.9778 31.8839 20.7737 31.9968 20.5505 32.0347C18.0787 32.6688 14.0105 34.5880 14.0105 40.3457C14.0105 44.6934 16.4240 47.0929 18.4496 48.3411C19.1412 48.7745 19.9594 49.0051 20.8229 49.0141L32.9451 49.0251L32.9431 51.0222L20.8119 51.0112C19.5664 50.9983 18.3842 50.6608 17.3840 50.0347C15.3766 48.7974 12 45.8897 12 40.3457C12 33.6624 16.6000 31.1919 19.3000 30.3192C19.2799 30.0116 19.2699 29.7021 19.2699 29.3925C19.2699 23.9324 22.9983 18.2696 27.9420 16.2216C33.7241 13.8151 39.8500 15.0083 44.3263 19.4110C45.7136 20.7750 46.8545 22.4316 47.7301 24.3478C48.9062 23.3802 50.3557 22.8460 51.8837 22.8460C54.8863 22.8460 58.2659 25.1097 58.8681 30.0606C61.6797 30.7046 67.6206 32.9554 67.6206 40.4226C67.6206 43.4043 66.6797 45.8667 64.8231 47.7420L63.3896 46.3410C64.8633 44.8532 65.6102 42.8620 65.6102 40.4226C65.6102 33.8910 60.1055 32.2664 57.7372 31.8719C57.4678 31.8270 57.2295 31.6752 57.0757 31.4515C56.9259 31.2359 56.8687 30.9712 56.9139 30.7146C56.5852 26.6605 54.1606 24.8431 51.8837 24.8431C50.4472 24.8431 49.1002 25.5381 48.1874 26.7504C47.9653 27.0439 47.6044 27.1937 47.2345 27.1398C46.8696 27.0859 46.5630 26.8362 46.4373 26.4917C45.6140 24.2260 44.4279 22.3208 42.9120 20.8309C39.0328 17.0154 33.7281 15.9809 28.7171 18.0649C24.5463 19.7924 21.2803 24.7672 21.2803 29.3925Z" fill="#fff"/>
+    </symbol>
+
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; fill: #161e2d; }
+      .title { font-size: 30px; font-weight: 650; }
+      .boundary-label { font-size: 17px; font-weight: 650; fill: #334155; }
+      .service { font-size: 18px; font-weight: 650; }
+      .detail { font-size: 14px; fill: #475569; }
+      .route { font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fill: #334155; }
+      .edge { font-size: 14px; font-weight: 600; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="760" fill="#ffffff"/>
+  <text class="title" x="800" y="48" text-anchor="middle">Jarvis · current AWS architecture</text>
+
+  <!-- AWS boundaries -->
+  <rect x="400" y="82" width="1140" height="606" rx="6" fill="#ffffff" stroke="#232f3e" stroke-width="2" stroke-dasharray="8 6"/>
+  <rect x="424" y="107" width="1092" height="557" rx="4" fill="#f8fbff" stroke="#147eba" stroke-width="2"/>
+  <rect x="420" y="72" width="128" height="28" fill="#ffffff"/>
+  <text class="boundary-label" x="432" y="93">AWS Cloud</text>
+  <rect x="446" y="97" width="185" height="28" fill="#f8fbff"/>
+  <text class="boundary-label" x="456" y="118">Region · eu-west-1</text>
+
+  <!-- User -->
+  <g aria-label="User">
+    <circle cx="74" cy="289" r="28" fill="#fff" stroke="#545b64" stroke-width="3"/>
+    <path d="M25 382C25 338 45 318 74 318C103 318 123 338 123 382" fill="#fff" stroke="#545b64" stroke-width="3"/>
+    <text class="service" x="74" y="416" text-anchor="middle">User</text>
+  </g>
+
+  <!-- MCP client -->
+  <g aria-label="MCP client">
+    <rect x="184" y="255" width="166" height="112" rx="6" fill="#fff" stroke="#545b64" stroke-width="3"/>
+    <rect x="199" y="270" width="136" height="73" rx="2" fill="#eef4fa" stroke="#545b64" stroke-width="2"/>
+    <path d="M238 382H296M251 367V382M283 367V382" fill="none" stroke="#545b64" stroke-width="3" stroke-linecap="round"/>
+    <text class="service" x="267" y="416" text-anchor="middle">MCP client</text>
+    <text class="detail" x="267" y="438" text-anchor="middle">Claude or any MCP agent</text>
+  </g>
+
+  <!-- AWS services -->
+  <g aria-label="Amazon API Gateway">
+    <use href="#aws-api-gateway" x="572" y="247" width="96" height="96"/>
+    <text class="service" x="620" y="373" text-anchor="middle">Amazon API Gateway</text>
+    <text class="detail" x="620" y="395" text-anchor="middle">HTTP API · $default stage</text>
+    <text class="route" x="620" y="425" text-anchor="middle">GET /.well-known/.../mcp  [public]</text>
+    <text class="route" x="620" y="448" text-anchor="middle">ANY /mcp  [JWT authorizer]</text>
+  </g>
+
+  <g aria-label="AWS Lambda">
+    <use href="#aws-lambda" x="932" y="247" width="96" height="96"/>
+    <text class="service" x="980" y="373" text-anchor="middle">AWS Lambda</text>
+    <text class="detail" x="980" y="395" text-anchor="middle">Jarvis MCP server</text>
+    <text class="detail" x="980" y="416" text-anchor="middle">Python 3.13 · arm64</text>
+    <text class="detail" x="980" y="437" text-anchor="middle">Stateless HTTP · JSON</text>
+  </g>
+
+  <g aria-label="Amazon CloudWatch">
+    <use href="#aws-cloudwatch" x="1282" y="247" width="96" height="96"/>
+    <text class="service" x="1330" y="373" text-anchor="middle">Amazon CloudWatch</text>
+    <text class="detail" x="1330" y="395" text-anchor="middle">API Gateway access logs</text>
+    <text class="detail" x="1330" y="416" text-anchor="middle">Lambda function logs</text>
+    <text class="detail" x="1330" y="437" text-anchor="middle">14-day retention</text>
+  </g>
+
+  <g aria-label="Amazon Cognito">
+    <use href="#aws-cognito" x="572" y="510" width="96" height="96"/>
+    <text class="service" x="620" y="633" text-anchor="middle">Amazon Cognito</text>
+    <text class="detail" x="620" y="653" text-anchor="middle">User Pool · hosted login</text>
+  </g>
+
+  <!-- Connections -->
+  <path d="M123 321H168" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <path d="M350 302H557" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="411" y="275" width="92" height="24" rx="4" fill="#fff"/>
+  <text class="edge" x="457" y="292" text-anchor="middle">HTTPS</text>
+
+  <path d="M668 295H917" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="744" y="267" width="98" height="24" rx="4" fill="#f8fbff"/>
+  <text class="edge" x="793" y="284" text-anchor="middle">AWS_PROXY</text>
+  <text class="detail" x="793" y="321" text-anchor="middle">Both routes invoke the same function</text>
+
+  <path d="M350 353C410 466 475 558 557 558" fill="none" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-start)" marker-end="url(#arrow-blue)"/>
+  <rect x="376" y="458" width="174" height="25" rx="4" fill="#fff"/>
+  <text class="edge" x="463" y="476" text-anchor="middle" fill="#2563eb">OAuth 2.1 + PKCE</text>
+
+  <path d="M620 510V463" fill="none" stroke="#64748b" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+  <rect x="640" y="471" width="104" height="23" rx="3" fill="#f8fbff"/>
+  <text class="detail" x="692" y="488" text-anchor="middle">issuer · JWKS</text>
+
+  <path d="M620 247V195H1330V232" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-dasharray="3 6" marker-end="url(#arrow)"/>
+  <rect x="868" y="181" width="134" height="24" rx="4" fill="#f8fbff"/>
+  <text class="edge" x="935" y="198" text-anchor="middle">API access logs</text>
+
+  <path d="M1028 325H1267" fill="none" stroke="#e7157b" stroke-width="2.5" stroke-dasharray="3 6" marker-end="url(#arrow)"/>
+  <rect x="1080" y="297" width="126" height="24" rx="4" fill="#f8fbff"/>
+  <text class="edge" x="1143" y="314" text-anchor="middle">Function logs</text>
+</svg>
