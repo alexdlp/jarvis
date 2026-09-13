@@ -47,10 +47,31 @@ def register(mcp: MCPServer) -> None:
                 # else.
                 "resource": os.environ["MCP_RESOURCE_URL"],
                 # A list, but only the first entry is ever used.
-                "authorization_servers": [os.environ["COGNITO_ISSUER"]],
+                "authorization_servers": [os.environ["MCP_AUTH_SERVER_URL"]],
                 "scopes_supported": ["jarvis-mcp/tasks"],
                 # The token travels in the Authorization header. Putting it in
                 # a query string is forbidden — URLs end up in logs.
                 "bearer_methods_supported": ["header"],
+            }
+        )
+
+    @mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])
+    async def authorization_server_metadata(request: Request) -> JSONResponse:
+        """Expose OAuth authorization server metadata."""
+        return JSONResponse(
+            {
+                "issuer": os.environ["COGNITO_ISSUER"],
+                "authorization_endpoint": (
+                    f"{os.environ['COGNITO_DOMAIN_URL']}/oauth2/authorize"
+                ),
+                "token_endpoint": (
+                    f"{os.environ['COGNITO_DOMAIN_URL']}/oauth2/token"
+                ),
+                "code_challenge_methods_supported": ["S256"],
+                "response_types_supported": ["code"],
+                "grant_types_supported": [
+                    "authorization_code",
+                    "refresh_token",
+                ],
             }
         )

@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
   dependencies = [
-      "mcp>=2.1.1",
+      "mcp>=2.2.0",
       # ASGI -> Lambda adapter. The MCP SDK's streamable HTTP transport is a
       # Starlette app; Mangum is what turns an API Gateway event into an ASGI
       # request and the ASGI response back into a Lambda result.
@@ -17,6 +17,13 @@ requires-python = ">=3.13"
 
 [project.scripts]
 jarvis = "jarvis:main"
+
+[dependency-groups]
+dev = ["pytest>=9.1.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

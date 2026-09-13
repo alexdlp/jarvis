@@ -180,6 +180,13 @@ resource "aws_apigatewayv2_route" "oauth_metadata" {
   target = "integrations/${aws_apigatewayv2_integration.mcp.id}"
 }
 
+resource "aws_apigatewayv2_route" "oauth_authorization_server" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /.well-known/oauth-authorization-server"
+
+  target = "integrations/${aws_apigatewayv2_integration.mcp.id}"
+}
+
 # The door itself: API Gateway validates the token before anything else runs.
 #
 # Doing it here rather than in the lambda means a request without a valid token
@@ -202,7 +209,10 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
   jwt_configuration {
     # Who the token must have been issued for. This is what stops a token
     # minted for some other app in the same user pool from opening this door.
-    audience = [aws_cognito_user_pool_client.claude.id]
+    audience = [
+      aws_cognito_user_pool_client.claude.id,
+      aws_cognito_user_pool_client.chatgpt.id,
+    ]
 
     # Where the public keys come from: the gateway appends
     # /.well-known/jwks.json to this and caches the result.

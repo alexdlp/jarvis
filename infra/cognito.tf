@@ -242,3 +242,84 @@ resource "aws_cognito_user_pool_client" "claude" {
   #   ALLOW_ADMIN_USER_PASSWORD_AUTH would only be useful temporarily for
   #   direct CLI testing and should not be enabled just for convenience.
 }
+
+
+# -----------------------------------------------------------------------------
+# OAuth App Client: ChatGPT
+# -----------------------------------------------------------------------------
+#
+# A second OAuth registration against the same User Pool, the same API Gateway
+# and the same Lambda. The only thing that differs is who is calling.
+#
+# A separate App Client rather than extra callback URLs on the Claude one: each
+# connector then has its own client_id and its own revocation switch, so
+# disconnecting ChatGPT cannot invalidate Claude's refresh tokens.
+#
+resource "aws_cognito_user_pool_client" "chatgpt" {
+  name         = "chatgpt-connector"
+  user_pool_id = aws_cognito_user_pool.users.id
+
+  # Public client, exactly like Claude.
+  #
+  # ChatGPT redeems the authorization code from its own backend and could
+  # therefore hold a secret, but it does not need one: its connector flow
+  # mandates PKCE with S256, and that is what protects the exchange. ChatGPT's
+  # own dialog calls the secret optional.
+  generate_secret = false
+
+  # Enable OAuth configuration for this App Client.
+  allowed_oauth_flows_user_pool_client = true
+
+  # Authorization Code Grant, same as Claude.
+  allowed_oauth_flows = ["code"]
+
+  # Authentication is performed directly by Cognito.
+  supported_identity_providers = ["COGNITO"]
+
+  # Scopes that ChatGPT is allowed to request.
+  #
+  # Deliberately excludes "phone": the pool advertises it in scopes_supported,
+  # but requesting a scope this client does not allow fails the authorization
+  # request with invalid_scope rather than being ignored.
+  allowed_oauth_scopes = [
+    "openid",
+    "email",
+    "profile",
+    "${aws_cognito_resource_server.mcp.identifier}/tasks",
+  ]
+
+  # The single redirect URI ChatGPT generated for this connector.
+  #
+  # ChatGPT picks between two forms. It uses the stable
+  # /connector_platform_oauth_redirect only for an authorization server that
+  # satisfies RFC 9207 issuer identification: metadata advertising
+  # authorization_response_iss_parameter_supported, and an `iss` returned in
+  # every authorization response. Cognito does neither, and its metadata is not
+  # ours to change, so this deployment always gets the callback-id form below.
+  #
+  # Whether that id survives deleting and recreating the connector is not
+  # documented. If it changes, this list is what has to be updated.
+  callback_urls = [
+    "https://chatgpt.com/connector/oauth/tC-aXkW_QK6E",
+  ]
+
+  # Same lifetimes as the Claude client, restated so the security behaviour is
+  # visible in Terraform rather than implicit in the AWS default.
+  access_token_validity  = 1
+  id_token_validity      = 1
+  refresh_token_validity = 30
+
+  token_validity_units {
+    access_token  = "hours"
+    id_token      = "hours"
+    refresh_token = "days"
+  }
+
+  # Refresh tokens can be revoked when the connector is disconnected. This is
+  # the reason for a separate App Client: revoking here leaves Claude alone.
+  enable_token_revocation = true
+
+  # Prevent authentication responses from revealing whether a particular user
+  # exists in the User Pool.
+  prevent_user_existence_errors = "ENABLED"
+}

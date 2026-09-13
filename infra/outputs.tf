@@ -20,9 +20,9 @@ output "cognito_issuer" {
   description = "OIDC issuer URL of the user pool."
 }
 
-# Typed into the MCP client's connector configuration by hand, since Cognito
+# Typed into Claude's connector configuration by hand, since Cognito
 # cannot register clients dynamically.
-output "cognito_client_id" {
+output "cognito_claude_client_id" {
   value       = aws_cognito_user_pool_client.claude.id
   description = "OAuth client id for the Claude connector."
 }
@@ -59,5 +59,13 @@ output "cognito_user_pool_id" {
 # route and returns 404.
 output "mcp_url" {
   value       = "${trimsuffix(aws_apigatewayv2_stage.default.invoke_url, "/")}/mcp"
-  description = "The MCP endpoint. Currently unauthenticated."
+  description = "The MCP endpoint. Requires a Cognito access token."
+}
+
+# Typed into ChatGPT's connector dialog by hand, since Cognito cannot register
+# clients dynamically. There is no secret counterpart: the client is public and
+# relies on PKCE, so there is nothing here that has to stay out of a terminal.
+output "cognito_chatgpt_client_id" {
+  value       = aws_cognito_user_pool_client.chatgpt.id
+  description = "OAuth client id for the ChatGPT connector."
 }

@@ -9,7 +9,7 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help init plan apply destroy url create-user list-users build
+.PHONY: help init plan apply destroy url outputs create-user list-users build
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -53,6 +53,7 @@ help:
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make plan"    "preview the changes terraform would make"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make apply"   "create or update the infrastructure"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make url"     "print the gateway's public url"
+	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make outputs" "print every terraform output"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make destroy" "tear everything down"
 	@printf "    $(GREEN)%-14s$(RESET) $(DIM)%s$(RESET)\n" "make create-user" "create a cognito user (EMAIL=...)"
 	@printf "    $(GREEN)%-14s$(RESET) $(DIM)%s$(RESET)\n" "make list-users"  "list cognito users and their status"
@@ -85,6 +86,18 @@ destroy: build
 ## Print the gateway's public base URL.
 url:
 	@cd $(INFRA) && terraform output -raw api_url
+
+## Print every terraform output: urls, the issuer, the pool id, the client ids.
+##
+## Unlike plan and apply this reads the state rather than the configuration, so
+## it needs no TF_VAR_ values and no build. What it prints is whatever the last
+## apply recorded — it will not notice a change that has not been applied yet.
+##
+## A thin wrapper around one terraform command, and it earns its place for the
+## same reason as the rest of this file: knowing where the state directory
+## lives should not be a prerequisite for reading a client id.
+outputs:
+	@cd $(INFRA) && terraform output
 
 ## Create a Cognito user. Usage: make create-user EMAIL=you@example.com
 ##
@@ -151,17 +164,19 @@ list-users:
 ## plain install on macOS produces Darwin .so files and the function dies
 ## importing pydantic before reaching a line of our own code.
 ##
-## -r pyproject.toml keeps the dependency list in one place: adding a package
-## there is all it takes for the next build to include it.
+## Export locked runtime dependencies with hashes; exclude the project itself
+## (copied below) and development tools. A stale lockfile must fail the build.
 ##
 ## The flags mirror lambda.tf — runtime python3.13, architectures ["arm64"].
 ## If either changes there, it changes here too.
 build:
 	@rm -rf $(BUILD) && mkdir -p $(BUILD)
-	@uv pip install --quiet \
+	@set -o pipefail; \
+		uv export --locked --no-dev --no-emit-project --format requirements.txt | \
+		uv pip install --quiet --require-hashes \
 		--python-platform aarch64-manylinux_2_17 \
 		--python-version 3.13 \
 		--target $(BUILD) \
-		-r pyproject.toml
+		-r -
 	@cp -R src/jarvis $(BUILD)/jarvis
 	@printf "  $(GREEN)package ready$(RESET) $(DIM)%s$(RESET)\n" "$$(du -sh $(BUILD) | cut -f1)"

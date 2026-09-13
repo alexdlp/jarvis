@@ -138,8 +138,11 @@ resource "aws_lambda_function" "mcp_server" {
   # stage would add a dependency the function does not otherwise need.
   environment {
     variables = {
-      MCP_RESOURCE_URL = "https://${aws_apigatewayv2_api.main.id}.execute-api.${var.region}.amazonaws.com/mcp"
-      COGNITO_ISSUER   = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.users.id}"
+      MCP_RESOURCE_URL    = "https://${aws_apigatewayv2_api.main.id}.execute-api.${var.region}.amazonaws.com/mcp"
+      COGNITO_ISSUER      = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.users.id}"
+      MCP_AUTH_SERVER_URL = "https://${aws_apigatewayv2_api.main.id}.execute-api.${var.region}.amazonaws.com"
+      COGNITO_DOMAIN_URL  = "https://${aws_cognito_user_pool_domain.auth.domain}.auth.${var.region}.amazoncognito.com"
     }
   }
 }
+
