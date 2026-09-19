@@ -127,6 +127,7 @@ resource "aws_lambda_function" "mcp_server" {
   depends_on = [
     aws_cloudwatch_log_group.lambda,
     aws_iam_role_policy_attachment.logs,
+    aws_iam_role_policy.dynamodb,
   ]
 
   # The metadata document has to name its own URL and its issuer, and neither
@@ -142,6 +143,12 @@ resource "aws_lambda_function" "mcp_server" {
       COGNITO_ISSUER      = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.users.id}"
       MCP_AUTH_SERVER_URL = "https://${aws_apigatewayv2_api.main.id}.execute-api.${var.region}.amazonaws.com"
       COGNITO_DOMAIN_URL  = "https://${aws_cognito_user_pool_domain.auth.domain}.auth.${var.region}.amazoncognito.com"
+
+      # Read from the resource rather than written as "jarvis" a second time.
+      # The name is knowable without applying, so this buys nothing at deploy
+      # time — it buys the dependency edge, which makes terraform create the
+      # table before the function that reads it.
+      JARVIS_TABLE_NAME = aws_dynamodb_table.main.name
     }
   }
 }

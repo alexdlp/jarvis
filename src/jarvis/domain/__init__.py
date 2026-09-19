@@ -9,7 +9,6 @@ reaching outwards.
 from jarvis.domain.work_item import (
     Importance,
     Kind,
-    NewWorkItem,
     Status,
     WorkItem,
 )
@@ -17,7 +16,6 @@ from jarvis.domain.work_item import (
 __all__ = [
     "Importance",
     "Kind",
-    "NewWorkItem",
     "Status",
     "WorkItem",
 ]
