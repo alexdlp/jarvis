@@ -73,7 +73,7 @@ class WorkItem(BaseModel):
     title: str = Field(min_length=1)
     kind: Kind = Kind.TASK
     status: Status = Status.INBOX
-    notes: str | None = None
+    description: str | None = None
 
     deadline: date | None = None
     estimate_minutes: int | None = Field(default=None, gt=0)

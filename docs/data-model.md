@@ -24,7 +24,7 @@ present, under its own name:
   "title":            "Aprender CUDA",
   "kind":             "project",
   "status":           "active",
-  "notes":            null,
+  "description":      null,
   "deadline":         "2026-10-31",
   "estimate_minutes": null,
   "importance":       "high",
@@ -36,8 +36,8 @@ present, under its own name:
   "entity":    "work_item",
   "version":   1,
 
-  "by_status_pk": "U#a1b2c3d4-5e6f-7890-abcd-ef1234567890#open",
-  "by_status_sk": "active#2026-10-31"
+  "status_pk": "U#a1b2c3d4-5e6f-7890-abcd-ef1234567890#open",
+  "status_sk": "active#2026-10-31"
 }
 ```
 
@@ -49,8 +49,8 @@ the item already has**, arranged into keys:
 | -------------- | ---------------------------------------------------- |
 | `pk`           | the `sub` claim of the validated JWT                 |
 | `sk`           | `"ITEM#"` + `id`                                     |
-| `by_status_pk` | the `sub` claim + whether `status` is open or closed |
-| `by_status_sk` | `status` + the date that governs it — `_ordering_date` |
+| `status_pk` | the `sub` claim + whether `status` is open or closed |
+| `status_sk` | `status` + the date that governs it — `_ordering_date` |
 
 
 They are duplicated because DynamoDB can only sort and filter by what sits in a
@@ -71,8 +71,8 @@ def to_item(user_id: str, w: WorkItem) -> dict:
     return {
         "pk": f"U#{user_id}",
         "sk": f"ITEM#{w.id}",
-        "by_status_pk": f"U#{user_id}#{phase}",
-        "by_status_sk": f"{w.status}#{_ordering_date(w)}",
+        "status_pk": f"U#{user_id}#{phase}",
+        "status_sk": f"{w.status}#{_ordering_date(w)}",
         "entity": "work_item",
         **w.model_dump(mode="json"),
     }
@@ -208,12 +208,12 @@ condition, so a bug in the repository cannot cross the boundary. That costs an
 | #   | Question                                | How                                                                    |
 | --- | --------------------------------------- | ---------------------------------------------------------------------- |
 | A1  | Give me item X                          | `GetItem` on `pk = U#<sub>`, `sk = ITEM#<id>`                          |
-| A2  | What is in the inbox?                   | `by_status`, pk `…#open`, sk `begins_with('inbox#')`                   |
-| A3  | What is active, soonest deadline first? | `by_status`, pk `…#open`, sk `begins_with('active#')`                  |
+| A2  | What is in the inbox?                   | `status`, pk `…#open`, sk `begins_with('inbox#')`                   |
+| A3  | What is active, soonest deadline first? | `status`, pk `…#open`, sk `begins_with('active#')`                  |
 | A4  | What is due today or overdue?           | the same, sk `BETWEEN 'active#' AND 'active#<today>'`                  |
-| A5  | What is parked?                         | `by_status`, pk `…#open`, sk `begins_with('parked#')`                  |
-| A6  | All my open work, one call              | `by_status`, pk `…#open`                                               |
-| A7  | What did I finish last week?            | `by_status`, pk `…#closed`, sk `BETWEEN` the week's first and last instant |
+| A5  | What is parked?                         | `status`, pk `…#open`, sk `begins_with('parked#')`                  |
+| A6  | All my open work, one call              | `status`, pk `…#open`                                               |
+| A7  | What did I finish last week?            | `status`, pk `…#closed`, sk `BETWEEN` the week's first and last instant |
 | A8  | Active children of project P            | A3, filtered on `parent_id`                                            |
 | A9  | Active items tagged T                   | A3, filtered on `contains(tags, :t)`                                   |
 
@@ -234,8 +234,8 @@ So the upper bound is the last instant inside the window, which the fixed-width
 second-precision convention makes exact:
 
 ```python
-Key("by_status_pk").eq(f"U#{user_id}#closed")
-& Key("by_status_sk").between(
+Key("status_pk").eq(f"U#{user_id}#closed")
+& Key("status_sk").between(
     f"done#{monday.isoformat(timespec='seconds')}",
     f"done#{(next_monday - timedelta(seconds=1)).isoformat(timespec='seconds')}",
 )
@@ -284,9 +284,9 @@ rather than the partition.
 ## The index
 
 ```
-by_status_pk = U#<sub>#open      (inbox, active, parked)
+status_pk = U#<sub>#open      (inbox, active, parked)
              | U#<sub>#closed    (done, cancelled)
-by_status_sk = <status>#<the date that governs that status>
+status_sk = <status>#<the date that governs that status>
 ```
 
 ```
@@ -362,14 +362,14 @@ urgency, "no deadline" means *due never*, and due-never genuinely sorts last.
 The sentinel makes the ordering total, which is what lets one query return the
 whole status instead of "the dated ones, and remember to go and fetch the rest".
 
-The alternative is a sparse index — omit `by_status_sk` when there is no
+The alternative is a sparse index — omit `status_sk` when there is no
 deadline and the item never enters the index at all. Smaller, cheaper, and the
 index would then hold exactly the set the deadline question is about. Rejected
 because in a personal task manager the undated items are the *majority*, so this
 would leave most of the data outside the index and split A3 into two access
 paths.
 
-Projection is `INCLUDE`, everything except `notes` — the only attribute with no
+Projection is `INCLUDE`, everything except `description` — the only attribute with no
 natural bound, and one no list view renders.
 
 ### Is even one index efficient?

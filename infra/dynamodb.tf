@@ -6,7 +6,7 @@
 # known before their key shape is committed.
 #
 # DynamoDB only requires schema declarations for attributes used as table or
-# index keys. Attributes such as title, deadline, tags and notes are written by
+# index keys. Attributes such as title, deadline, tags and description are
 # the application and therefore do not appear as attribute blocks here.
 #
 # docs/data-model.md documents the complete work-item representation and how
@@ -21,6 +21,10 @@ resource "aws_dynamodb_table" "main" {
   # application-managed autoscaling policy is required.
   billing_mode = "PAY_PER_REQUEST"
 
+  # These stay as hash_key/range_key despite the deprecation warning, because
+  # aws 6.62.0 offers no table-level key_schema block to move them to — the
+  # replacement exists only inside global_secondary_index. Revisit when the
+  # provider grows one.
   hash_key  = "pk"
   range_key = "sk"
 
@@ -59,18 +63,18 @@ resource "aws_dynamodb_table" "main" {
   }
 
   attribute {
-    name = "by_status_pk"
+    name = "status_pk"
     type = "S"
   }
 
   attribute {
-    name = "by_status_sk"
+    name = "status_sk"
     type = "S"
   }
 
   # Access work items by lifecycle phase and status.
   #
-  #   by_status_pk = U#<sub>#open
+  #   status_pk = U#<sub>#open
   #             | U#<sub>#closed
   #
   # where:
@@ -80,7 +84,7 @@ resource "aws_dynamodb_table" "main" {
   #
   # and:
   #
-  #   by_status_sk = <status>#<relevant-date>
+  #   status_sk = <status>#<relevant-date>
   #
   # Examples:
   #
@@ -97,17 +101,17 @@ resource "aws_dynamodb_table" "main" {
   # charges for the items matching the key condition rather than for the ones it
   # skipped past to reach them. Only a FilterExpression reads and discards.
   #
-  # The status prefix in by_status_sk also makes an individual status a
+  # The status prefix in status_sk also makes an individual status a
   # contiguous range:
   #
-  #   begins_with(by_status_sk, "active#")
+  #   begins_with(status_sk, "active#")
   #
   # Note that the prefix determines the primary ordering. A Query over the whole
   # open partition returns items grouped lexicographically by status and then by
   # date within each status. It does NOT provide one global chronological order
   # across inbox, active and parked.
   #
-  # by_status_pk and by_status_sk are mutable index keys. Closing an item
+  # status_pk and status_sk are mutable index keys. Closing an item
   # changes its GSI key, and DynamoDB applies that as two index operations —
   # removing the previous entry and inserting the new one — in addition to the
   # write against the base table.
@@ -116,12 +120,27 @@ resource "aws_dynamodb_table" "main" {
   # Additional GSIs can be added to an existing table later when new access
   # patterns are known; there is no reason to speculate about them now.
   global_secondary_index {
-    name      = "by_status"
-    hash_key  = "by_status_pk"
-    range_key = "by_status_sk"
+    name = "status"
+
+    # key_schema rather than the hash_key/range_key pair the provider now warns
+    # about. It mirrors the DynamoDB API, where a key schema has always been an
+    # ordered list of (attribute, role) rather than two named arguments.
+    #
+    # Done now because the table does not exist yet, so it is a pure edit to the
+    # configuration. Changing how an index declares its keys once the index is
+    # live is a different proposition.
+    key_schema {
+      attribute_name = "status_pk"
+      key_type       = "HASH"
+    }
+
+    key_schema {
+      attribute_name = "status_sk"
+      key_type       = "RANGE"
+    }
 
     # INCLUDE keeps list queries index-only without duplicating the potentially
-    # unbounded `notes` attribute into every index entry.
+    # unbounded `description` attribute into every index entry.
     #
     # DynamoDB automatically projects the base-table primary key and the GSI key
     # attributes. The attributes below are the additional fields required by
