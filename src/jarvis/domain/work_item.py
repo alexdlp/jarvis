@@ -1,23 +1,3 @@
-"""The work item: the single entity Jarvis stores.
-
-One type covers what would otherwise be several. An idea, a task and a project
-are not different structures — they differ in `kind`, which records a judgement
-someone made about the thing. A subtask is not a kind at all: it is an item
-that happens to have a parent.
-
-Nothing here is inferred from shape, and that is deliberate. "Aprender CUDA" is
-a project before anyone breaks it down, so deriving `project` from "has
-children" would get it wrong exactly when it matters. Equally, a title with an
-estimate attached is not thereby a task — being finishable is a property of the
-work, not of which fields are populated.
-
-What is absent is as considered as what is here. There is no scheduled time:
-when you plan to do something is a separate fact, it lives in the calendar, and
-storing it here as well would create two owners for it. There is no priority
-either — importance is stated and stays true, whereas urgency is a function of
-`deadline` and today's date and would go stale the moment it was written down.
-"""
-
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -30,32 +10,62 @@ from jarvis.utils.ids import new_id
 
 
 class Kind(StrEnum):
-    """What the item is. Recorded during triage, never derived."""
+    """What the item is.
 
-    IDEA = "idea"        # not actionable yet — still needs thinking through
-    TASK = "task"        # concrete, and finishable as it stands
-    PROJECT = "project"  # has to be broken down before it can be worked on
+    idea     not actionable yet — still needs thinking through
+    task     concrete, and finishable as it stands
+    project  has to be broken down before it can be worked on
+    """
+
+    # The meanings live in the docstring rather than beside each member because
+    # that is the half that survives: pydantic carries a class docstring into
+    # the JSON Schema as the type's `description`, so an agent reading the
+    # schema sees these three lines. A comment reaches nobody but a reader of
+    # this file — which is what makes it the right place for the rest of the
+    # reasoning. This is a judgement someone made, never inferred from shape;
+    # the module docstring argues why.
+    IDEA = "idea"
+    TASK = "task"
+    PROJECT = "project"
 
 
 class Status(StrEnum):
     """Where the item is in its life.
 
-    Limited to what cannot be computed from other fields. There is no `ready`,
-    because that is an item that has been estimated; no `in progress`, because
-    that is an item started and not finished; no `blocked`, because what is
-    useful there is *what* blocks it rather than the fact that something does.
+    inbox      captured, not thought about yet
+    active     in play — decided, real, possibly already started
+    parked     someday, deliberately not now
+    done       finished
+    cancelled  decided against, which is not the same as done
     """
 
-    INBOX = "inbox"          # captured, not yet triaged
-    ACTIVE = "active"        # triaged and in play
-    PARKED = "parked"        # someday — deliberately not now
-    DONE = "done"            # finished
-    CANCELLED = "cancelled"  # decided against, which is not the same as done
+    # Limited to what cannot be computed from other fields. There is no `ready`,
+    # because that is an item that has been estimated; no `in progress`, because
+    # that is an item started and not finished; no `blocked`, because what is
+    # useful there is *what* blocks it rather than the fact that something does.
+    #
+    # That argument is a comment and not part of the docstring on purpose. It
+    # explains states this enum does not have, which is worth a great deal to
+    # someone changing this file and worth nothing to an agent filling in a
+    # field — and the docstring is sent to the agent on every request.
+    INBOX = "inbox"
+    ACTIVE = "active"
+    PARKED = "parked"
+    DONE = "done"
+    CANCELLED = "cancelled"
 
 
 class Importance(StrEnum):
-    """How much this matters. Stated by the user, never inferred."""
+    """How much this matters, as the user judges it.
 
+    low, normal, high. `high` only when the user says or clearly implies this
+    matters more than their other work. Urgency is not importance: something
+    due tomorrow is not thereby important.
+    """
+
+    # Stated, never inferred — which is also why urgency is absent entirely.
+    # Urgency is a function of `deadline` and today's date, so it would go stale
+    # the moment it was written down.
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
