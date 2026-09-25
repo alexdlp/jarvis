@@ -34,7 +34,6 @@ present, under its own name:
   "completed_at":     null,
 
   "entity":    "work_item",
-  "version":   1,
 
   "status_pk": "U#a1b2c3d4-5e6f-7890-abcd-ef1234567890#open",
   "status_sk": "active#2026-10-31"
@@ -423,9 +422,12 @@ as strings and Python's default `isoformat()` drops microseconds when they are
 zero, producing two widths and therefore two orderings for one instant. Dates
 are `YYYY-MM-DD`.
 
-**`version`** is on every item and every write asserts it with a
-`ConditionExpression`. The caller is a language model that can fire two tool
-calls at the same item in one turn; last-write-wins would drop one silently.
+**Concurrent updates are not handled yet**, and will need to be. The caller is
+a language model that can fire two tool calls at the same item in one turn, so
+last-write-wins would drop one silently. The answer is a `version` attribute
+asserted by a `ConditionExpression` on every write — deliberately not written
+down as though it existed, because nothing updates an item today and an
+unimplemented promise in a data model is worse than an absent one.
 
 **`entity`** costs a few bytes and is what lets a backfill, a stream consumer or
 a person reading the console tell what they are looking at without parsing a

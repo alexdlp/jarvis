@@ -9,7 +9,7 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help init plan apply destroy url outputs create-user list-users build
+.PHONY: help init plan apply destroy url outputs logs create-user list-users list-db build
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -29,7 +29,6 @@ export TF_VAR_region := $(REGION)
 
 # Directory holding the terraform configuration.
 INFRA := infra
-BUILD := build
 
 # Terminal colors for the help output. Defined once so the targets below stay
 # readable.
@@ -54,6 +53,8 @@ help:
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make apply"   "create or update the infrastructure"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make url"     "print the gateway's public url"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make outputs" "print every terraform output"
+	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make logs"    "follow all logs (or use MINUTES=15 for history)"
+	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make list-db"  "list every item stored in DynamoDB"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make destroy" "tear everything down"
 	@printf "    $(GREEN)%-14s$(RESET) $(DIM)%s$(RESET)\n" "make create-user" "create a cognito user (EMAIL=...)"
 	@printf "    $(GREEN)%-14s$(RESET) $(DIM)%s$(RESET)\n" "make list-users"  "list cognito users and their status"
@@ -99,84 +100,28 @@ url:
 outputs:
 	@cd $(INFRA) && terraform output
 
+## Show the API Gateway and Lambda logs together.
+##
+## With no MINUTES value this follows new events until Ctrl+C. Setting MINUTES
+## runs a finite historical query instead: `make logs MINUTES=15`.
+logs:
+	@REGION="$(REGION)" MINUTES="$(MINUTES)" ./scripts/logs.sh
+
+## List every item currently stored in DynamoDB.
+list-db:
+	@REGION="$(REGION)" ./scripts/list-db.sh
+
 ## Create a Cognito user. Usage: make create-user EMAIL=you@example.com
 ##
-## One-off bootstrap, deliberately kept out of `apply`: creating a user is not
-## idempotent, so folding it into a deploy would make every redeploy fail once
-## the user exists.
-##
-## The password is read from the terminal rather than taken as a variable, so
-## it never lands in shell history or in the process list, where `ps` would
-## expose it to any other user on the machine.
-##
-## email_verified is set by hand because --message-action SUPPRESS skips the
-## verification email. Without the attribute, Cognito refuses to send a
-## password reset later and a forgotten password means being locked out.
+## The script prompts for the password and keeps this target as the stable
+## public command for the operation.
 create-user:
-	@test -n "$(EMAIL)" || { printf "  $(RED)EMAIL is required$(RESET)  $(DIM)make create-user EMAIL=you@example.com$(RESET)\n"; exit 1; }
-	@set -e; \
-	 pool=$$(cd $(INFRA) && terraform output -raw cognito_user_pool_id); \
-	 read -rs -p "  Password for $(EMAIL): " pw; echo; \
-	 aws cognito-idp admin-create-user \
-	   --user-pool-id "$$pool" \
-	   --username "$(EMAIL)" \
-	   --user-attributes Name=email,Value=$(EMAIL) Name=email_verified,Value=true \
-	   --message-action SUPPRESS \
-	   --region $(REGION) >/dev/null; \
-	 aws cognito-idp admin-set-user-password \
-	   --user-pool-id "$$pool" \
-	   --username "$(EMAIL)" \
-	   --password "$$pw" \
-	   --permanent \
-	   --region $(REGION); \
-	 printf "  $(GREEN)created$(RESET)  $(DIM)%s$(RESET)\n" "$(EMAIL)"
+	@REGION="$(REGION)" EMAIL="$(EMAIL)" ./scripts/create-user.sh
 
-
-  ## List the users in the pool and their status.
-  ##
-  ## UserStatus should read CONFIRMED. FORCE_CHANGE_PASSWORD means the permanent
-  ## password was never set and the first login will demand a change.
-  ##
-  ## The empty case is handled explicitly because `--output table` prints
-  ## absolutely nothing for an empty result — no header, no row — which is
-  ## indistinguishable from the command having failed. An empty pool is a normal
-  ## state worth saying out loud, especially since `terraform destroy` takes the
-  ## users with the pool: they are not terraform resources, but they live inside
-  ## one, so they never appear in a plan and never come back with an apply.
+## List the users in the Cognito pool and their status.
 list-users:
-	@set -e; \
-		pool=$$(cd $(INFRA) && terraform output -raw cognito_user_pool_id); \
-		count=$$(aws cognito-idp list-users --user-pool-id "$$pool" --region $(REGION) \
-		--query 'length(Users)' --output text); \
-		if [ "$$count" = "0" ]; then \
-		printf "  $(DIM)no users in$(RESET) %s\n" "$$pool"; \
-		printf "  $(DIM)create one:$(RESET) make create-user EMAIL=you@example.com\n"; \
-		else \
-		aws cognito-idp list-users --user-pool-id "$$pool" --region $(REGION) \
-             --query "Users[].[Attributes[?Name=='email'].Value|[0],UserStatus,UserCreateDate]" \
-             --output table; \
-		fi
+	@REGION="$(REGION)" ./scripts/list-users.sh
 
-## Assemble the lambda deployment package in build/.
-##
-## Dependencies are installed for the Lambda runtime's platform, not this
-## machine's. pydantic_core and cryptography ship compiled extensions, so a
-## plain install on macOS produces Darwin .so files and the function dies
-## importing pydantic before reaching a line of our own code.
-##
-## Export locked runtime dependencies with hashes; exclude the project itself
-## (copied below) and development tools. A stale lockfile must fail the build.
-##
-## The flags mirror lambda.tf — runtime python3.13, architectures ["arm64"].
-## If either changes there, it changes here too.
+## Assemble the Lambda deployment package in build/.
 build:
-	@rm -rf $(BUILD) && mkdir -p $(BUILD)
-	@set -o pipefail; \
-		uv export --locked --no-dev --no-emit-project --format requirements.txt | \
-		uv pip install --quiet --require-hashes \
-		--python-platform aarch64-manylinux_2_17 \
-		--python-version 3.13 \
-		--target $(BUILD) \
-		-r -
-	@cp -R src/jarvis $(BUILD)/jarvis
-	@printf "  $(GREEN)package ready$(RESET) $(DIM)%s$(RESET)\n" "$$(du -sh $(BUILD) | cut -f1)"
+	@./scripts/build.sh
