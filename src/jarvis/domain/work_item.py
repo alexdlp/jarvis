@@ -103,16 +103,3 @@ class WorkItem(BaseModel):
     # reads it. Estimates can be analysed at any time; a completion that was
     # never written down cannot be recovered.
     completed_at: datetime | None = None
-
-    def complete(self) -> None:
-        """Mark the work finished.
-
-        A method rather than two field assignments because the status and the
-        completion time have to move together: an item that is done without a
-        completed_at is a hole in the record that only shows up much later,
-        when there is nothing left to reconstruct it from.
-        """
-        moment = now()
-        self.status = Status.DONE
-        self.completed_at = moment
-        self.updated_at = moment
