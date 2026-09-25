@@ -8,6 +8,8 @@ from pydantic import Field
 
 from jarvis.domain import Importance, Kind, Status, WorkItem
 from jarvis.interface.identity import get_authenticated_user_id
+from jarvis.logger import logger
+from jarvis.storage.work_items import WorkItemRepository
 
 
 def capture_workitem(
@@ -94,19 +96,10 @@ def capture_workitem(
     # why there is no user_id parameter above for a model to fill in.
     user_id = get_authenticated_user_id(ctx)
 
-    # ---------------------------------------------------------------------
-    # GAP: persistence.
-    #
-    # The item is built and the caller is known, and nothing yet writes either
-    # of them down. This is where the work item goes into DynamoDB, under
-    # pk = U#<user_id>, sk = ITEM#<item.id>, with the two derived `status`
-    # index keys alongside — docs/data-model.md has the layout.
-    #
-    # Until that exists, capture_workitem validates the input and hands the
-    # item straight back, so what can be exercised is the part that is
-    # genuinely uncertain: whether a model reaches for this tool at the right
-    # moment and infers kind, status and deadline correctly.
-    # ---------------------------------------------------------------------
-    del user_id
+    WorkItemRepository().create(user_id, item)
+
+    # Log only operational metadata. Titles, descriptions and tags may contain
+    # personal information and are not needed to confirm that capture worked.
+    logger.info("Captured work item id=%s status=%s", item.id, item.status)
 
     return item.model_dump(mode="json")

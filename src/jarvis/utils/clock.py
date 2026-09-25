@@ -2,5 +2,5 @@ from datetime import UTC, datetime
 
 
 def now() -> datetime:
-    """The current instant, timezone-aware."""
+    """Return the current instant in UTC."""
     return datetime.now(UTC)
