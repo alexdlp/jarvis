@@ -12,6 +12,7 @@ output "api_url" {
 }
 
 
+
 # Two things will need this: the protected resource metadata document, which
 # names it as the authorization server, and the API Gateway JWT authorizer,
 # which uses it to fetch the pool's public signing keys.

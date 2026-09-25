@@ -158,7 +158,6 @@ resource "aws_dynamodb_table" "main" {
       "parent_id",
       "tags",
       "completed_at",
-      "version",
     ]
   }
 
