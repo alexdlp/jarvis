@@ -9,7 +9,7 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help init plan apply destroy url outputs logs create-user list-users list-db build
+.PHONY: help init plan apply destroy url outputs logs create-user list-users list-db build select-workspace
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -48,7 +48,7 @@ DIM   := \033[2m
 help:
 	@printf "\n  $(BOLD)Jarvis — MCP server on AWS$(RESET)\n"
 	@printf "\n  $(BOLD)Commands$(RESET)\n"
-	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make init"    "download the terraform providers"
+	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make init"    "initialize terraform and create or select the branch workspace"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make plan"    "preview the changes terraform would make"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make apply"   "create or update the infrastructure"
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make url"     "print the gateway's public url"
@@ -62,30 +62,38 @@ help:
 	@printf "    $(BLUE)%-12s$(RESET) %s\n" "REGION" "$(REGION)"
 	@printf "\n"
 
-## Download the provider plugins and pin their versions.
+## Initialize the backend and select the workspace associated with the branch.
 ##
-## Needed once per clone, and again whenever a provider version or the state
-## backend changes. plan and apply refuse to run before it.
+## Resolve the branch before entering infra/. Stop inmediately it its name 
+## is invalid, initialization fails, or workspace selection fails.
 init:
-	@cd $(INFRA) && terraform init
+	@jarvis_workspace="$$(bash scripts/workspace-name.sh)" && \
+	cd "$(INFRA)" && terraform init && \
+	terraform workspace select -or-create "$$jarvis_workspace"
+
+# Select the workspace associated with the current branch.
+# This command requires the workspace to already exists.
+select-workspace:
+	@jarvis_workspace="$$(bash scripts/workspace-name.sh)" && \
+	terraform -chdir="$(INFRA)" workspace select "$$jarvis_workspace"
 
 ## Preview the changes terraform would make, without making them.
 ##
 ## Worth reading every time: this is the only point where "2 to add, 0 to
 ## destroy" is visible before it happens rather than after.
-plan: build
+plan: select-workspace build
 	@cd $(INFRA) && terraform plan
 
 ## Create or update the infrastructure. Prompts for confirmation.
-apply: build
+apply: select-workspace build
 	@cd $(INFRA) && terraform apply
 
 ## Destroy every resource in this configuration. Prompts for confirmation.
-destroy: build
+destroy: select-workspace build
 	@cd $(INFRA) && terraform destroy
 
 ## Print the gateway's public base URL.
-url:
+url: select-workspace 
 	@cd $(INFRA) && terraform output -raw api_url
 
 ## Print every terraform output: urls, the issuer, the pool id, the client ids.
@@ -97,29 +105,29 @@ url:
 ## A thin wrapper around one terraform command, and it earns its place for the
 ## same reason as the rest of this file: knowing where the state directory
 ## lives should not be a prerequisite for reading a client id.
-outputs:
+outputs: select-workspace 
 	@cd $(INFRA) && terraform output
 
 ## Show the API Gateway and Lambda logs together.
 ##
 ## With no MINUTES value this follows new events until Ctrl+C. Setting MINUTES
 ## runs a finite historical query instead: `make logs MINUTES=15`.
-logs:
+logs: select-workspace 
 	@REGION="$(REGION)" MINUTES="$(MINUTES)" ./scripts/logs.sh
 
 ## List every item currently stored in DynamoDB.
-list-db:
+list-db: select-workspace 
 	@REGION="$(REGION)" ./scripts/list-db.sh
 
 ## Create a Cognito user. Usage: make create-user EMAIL=you@example.com
 ##
 ## The script prompts for the password and keeps this target as the stable
 ## public command for the operation.
-create-user:
+create-user: select-workspace 
 	@REGION="$(REGION)" EMAIL="$(EMAIL)" ./scripts/create-user.sh
 
 ## List the users in the Cognito pool and their status.
-list-users:
+list-users: select-workspace 
 	@REGION="$(REGION)" ./scripts/list-users.sh
 
 ## Assemble the Lambda deployment package in build/.

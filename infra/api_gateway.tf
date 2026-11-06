@@ -12,7 +12,7 @@
 # tool is a short request/response call.
 
 resource "aws_apigatewayv2_api" "main" {
-  name = "jarvis-api"
+  name = "jarvis-api${local.resource_suffix}"
 
   # "HTTP" as opposed to "WEBSOCKET". MCP's streamable transport runs over
   # plain HTTP; the long-lived SSE half of that transport is the part this
@@ -87,7 +87,7 @@ resource "aws_apigatewayv2_stage" "default" {
 # decided. A request the JWT authorizer rejects never invokes the lambda, so it
 # leaves no trace whatsoever in the other group.
 resource "aws_cloudwatch_log_group" "api" {
-  name              = "/aws/apigateway/jarvis-api"
+  name              = "/aws/apigateway/jarvis-api${local.resource_suffix}"
   retention_in_days = 14
 }
 # -----------------------------------------------------------------------------
