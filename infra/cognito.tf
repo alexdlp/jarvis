@@ -36,7 +36,7 @@
 # successful authentication.
 #
 resource "aws_cognito_user_pool" "users" {
-  name = "jarvis-users"
+  name = "jarvis-users${local.resource_suffix}"
 
   # Users authenticate using their email address instead of a separate
   # username.
@@ -106,7 +106,7 @@ resource "aws_cognito_user_pool_domain" "auth" {
   # accounts because they become part of a shared amazoncognito.com hostname.
   #
   # Change this value if Terraform reports that the prefix is already taken.
-  domain = "jarvis-auth"
+  domain = "jarvis-auth${local.resource_suffix}"
 
   user_pool_id = aws_cognito_user_pool.users.id
 }
@@ -300,7 +300,7 @@ resource "aws_cognito_user_pool_client" "chatgpt" {
   # Whether that id survives deleting and recreating the connector is not
   # documented. If it changes, this list is what has to be updated.
   callback_urls = [
-    "https://chatgpt.com/connector/oauth/tC-aXkW_QK6E",
+    "https://chatgpt.com/connector/oauth/0NtCRcad5iLR",
   ]
 
   # Same lifetimes as the Claude client, restated so the security behaviour is
