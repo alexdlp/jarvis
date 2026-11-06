@@ -18,6 +18,9 @@ fi
 
 user_pool_id="$(terraform -chdir="$infra_dir" output -raw cognito_user_pool_id)"
 
+# Keep this hint consistent with password_policy in infra/cognito.tf.
+printf '  Password requirements: at least 12 characters, including uppercase, lowercase, a number and a symbol.\n'
+
 # Reading the password interactively keeps it out of shell history. Cognito's
 # CLI accepts the password as an argument, so it can briefly be visible to
 # another process owned by the same operating-system user.
@@ -27,16 +30,19 @@ printf '\n'
 # SUPPRESS avoids sending Cognito's temporary-password invitation. Since that
 # also skips email verification, mark the address verified explicitly so that
 # Cognito can use it for account recovery later.
+# Supply the chosen password here so Cognito rejects an invalid password
+# before creating the user, rather than during the second operation.
 aws cognito-idp admin-create-user \
     --user-pool-id "$user_pool_id" \
     --username "$email" \
+    --temporary-password "$password" \
     --user-attributes "Name=email,Value=$email" Name=email_verified,Value=true \
     --message-action SUPPRESS \
     --region "$region" \
     >/dev/null
 
-# Replace Cognito's temporary password with the chosen permanent password so
-# the first login does not enter the FORCE_CHANGE_PASSWORD flow.
+# Set the same password as permanent so the first login does not enter the
+# FORCE_CHANGE_PASSWORD flow.
 aws cognito-idp admin-set-user-password \
     --user-pool-id "$user_pool_id" \
     --username "$email" \
