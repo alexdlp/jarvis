@@ -187,6 +187,26 @@ resource "aws_apigatewayv2_route" "oauth_authorization_server" {
   target = "integrations/${aws_apigatewayv2_integration.mcp.id}"
 }
 
+
+resource "aws_apigatewayv2_route" "google_oauth_callback" {
+  
+  # Expose the shared callback only in the main deployment. 
+  count = terraform.workspace == "main" ? 1 : 0
+
+  # Attach the callback to the existing HTTP API
+  api_id = aws_apigatewayv2_api.main.id
+
+  # Receive the browser redirect after Google's authorization screen. 
+  route_key = "GET /oauth/google/callback"
+
+  # Forward the request to the existing Lambda integration. 
+  target = "integrations/${aws_apigatewayv2_integration.mcp.id}"
+
+  # The browser does not carry ChatGPT's Cognito bearer token. 
+  authorization_type = "NONE"
+
+}
+
 # The door itself: API Gateway validates the token before anything else runs.
 #
 # Doing it here rather than in the lambda means a request without a valid token

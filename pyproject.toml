@@ -13,7 +13,8 @@ requires-python = ">=3.13"
       # Starlette app; Mangum is what turns an API Gateway event into an ASGI
       # request and the ASGI response back into a Lambda result.
       "mangum>=0.22",
-  ]
+      "google-auth-oauthlib>=1.5.0",
+]
 
 [project.scripts]
 jarvis = "jarvis:main"

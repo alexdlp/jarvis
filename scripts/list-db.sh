@@ -45,7 +45,7 @@ printf '  %s item(s) in %s\n' "$item_count" "$table_name"
 
 # DynamoDB represents every value with an explicit type wrapper, for example
 # {"S":"inbox"} or {"N":"30"}. Decode those wrappers recursively so the
-# terminal shows ordinary JSON while retaining every stored attribute.
+# terminal shows ordinary JSON with private verifier values omitted.
 jq '
     def decode_attribute:
         if has("S") then .S
@@ -63,6 +63,11 @@ jq '
 
     [
         .Items[]
+
+        # Remove the private Oauth values from the inspection output.
+        | del(.code_verifier, .access_token, .refresh_token)
+
+        # Convert typed DynamoDB values into ordinary JSON.
         | with_entries(.value |= decode_attribute)
     ]
     | sort_by([.pk, .sk])

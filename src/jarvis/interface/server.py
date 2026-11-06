@@ -4,7 +4,7 @@ from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
-from jarvis.interface import well_known
+from jarvis.interface import well_known, google_callback
 from jarvis.interface.tools import TOOLS
 
 
@@ -30,6 +30,9 @@ def build_starlette_server() -> Starlette:
         mcp.add_tool(tool)
 
     well_known.register(mcp)
+
+    # Register the browser endpoint for Google authorization
+    google_callback.register(mcp)
 
     return mcp.streamable_http_app(
         # No Mcp-Session-Id is issued, so the client never sends one back and

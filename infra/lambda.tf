@@ -112,11 +112,17 @@ resource "aws_lambda_function" "mcp_server" {
       MCP_AUTH_SERVER_URL = "https://${aws_apigatewayv2_api.main.id}.execute-api.${var.region}.amazonaws.com"
       COGNITO_DOMAIN_URL  = "https://${aws_cognito_user_pool_domain.auth.domain}.auth.${var.region}.amazoncognito.com"
 
+      # Tell the application where to retrieve the Google OAuth credentials.
+      GOOGLE_OAUTH_CLIENT_PARAMETER_NAME = local.google_oauth_client_parameter_name
+
       # Read from the resource rather than written as "jarvis" a second time.
       # The name is knowable without applying, so this buys nothing at deploy
       # time — it buys the dependency edge, which makes terraform create the
       # table before the function that reads it.
       JARVIS_TABLE_NAME = aws_dynamodb_table.main.name
+
+      # Identify the originating deployment when Google returns to the shared callback.
+      JARVIS_WORKSPACE = terraform.workspace
     }
   }
 }
