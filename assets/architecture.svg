@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title description">
-  <title id="title">Jarvis current AWS architecture</title>
-  <desc id="description">An MCP client authenticates with Amazon Cognito and sends HTTPS requests to Amazon API Gateway. API Gateway validates JWTs and invokes an AWS Lambda MCP server. API Gateway and Lambda send separate logs to Amazon CloudWatch.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-labelledby="title description">
+  <title id="title">Jarvis current implementation and AWS configuration</title>
+  <desc id="description">An MCP client authenticates with Cognito and calls three Jarvis tools through API Gateway and Lambda. DynamoDB stores work items, pending Google OAuth requests and user credentials. Parameter Store supplies the shared Google client configuration. Main exposes a fourth public route for Google's browser callback and can forward it to a branch Lambda. The OAuth result is returned as browser HTML, with no automatic continuation in the chat.</desc>
 
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
@@ -13,7 +13,7 @@
       <path d="M10,0 L0,5 L10,10 Z" fill="#2563eb"/>
     </marker>
 
-    <!-- Official AWS Architecture Icons, Q3 2026 -->
+    <!-- AWS service icons; DynamoDB uses a simplified local glyph. -->
     <symbol id="aws-api-gateway" viewBox="0 0 80 80">
       <rect width="80" height="80" fill="#8C4FFF"/>
       <path fill-rule="evenodd" clip-rule="evenodd" d="M34.065 55.6324H37V53.6153H34.065V55.6324ZM39 55.6324H42V53.6153H39V55.6324ZM27 14.6295L14 21.0821V61.1934L27 65.5896V14.6295ZM29 27.3934V53.6153H32V55.6324H29V66.9915C29 67.3162 28.845 67.6208 28.584 67.8104C28.412 67.9355 28.207 68 28 68C27.894 68 27.786 67.9829 27.682 67.9476L12.682 62.8756C12.274 62.7375 12 62.3522 12 61.9196V20.4537C12 20.0705 12.217 19.7185 12.559 19.5491L27.559 12.1041C27.868 11.9498 28.235 11.9679 28.528 12.1525C28.821 12.3361 29 12.6598 29 13.0087V25.3764H32V27.3934H29ZM44 55.6324H47V53.6153H44V55.6324ZM44.065 27.3934H47V25.3764H44.065V27.3934ZM39.065 27.3934H42V25.3764H39.065V27.3934ZM34.065 27.3934H37V25.3764H34.065V27.3934ZM66 21.0821L53 14.6295V65.5896L66 61.1934V21.0821ZM68 61.9196C68 62.3522 67.726 62.7375 67.318 62.8756L52.318 67.9476C52.214 67.9829 52.106 68 52 68C51.793 68 51.588 67.9355 51.416 67.8104C51.155 67.6208 51 67.3162 51 66.9915V55.6324H49.065V53.6153H51V27.3934H49.065V25.3764H51V13.0087C51 12.6598 51.179 12.3361 51.472 12.1525C51.765 11.9679 52.131 11.9498 52.441 12.1041L67.441 19.5491C67.783 19.7185 68 20.0705 68 20.4537V61.9196ZM42.934 33.8067L41.066 33.0826L36.066 46.1935L37.934 46.9176L42.934 33.8067ZM49.707 40.2089C50.098 39.8145 50.098 39.1761 49.707 38.7828L45.707 34.7487L44.293 36.1747L47.586 39.4958L44.293 42.8169L45.707 44.243L49.707 40.2089ZM34.293 44.243L30.293 40.2089C29.902 39.8145 29.902 39.1761 30.293 38.7828L34.293 34.7487L35.707 36.1747L32.414 39.4958L35.707 42.8169L34.293 44.243Z" fill="#fff"/>
@@ -22,6 +22,13 @@
     <symbol id="aws-lambda" viewBox="0 0 80 80">
       <rect width="80" height="80" fill="#ED7100"/>
       <path d="M28.0075 66H15.5907L29.3236 37.296L35.546 50.106L28.0075 66ZM30.2197 34.553C30.0513 34.208 29.7005 33.989 29.3176 33.989C28.9287 33.99 28.5779 34.211 28.4125 34.558L13.0979 66.569C12.9496 66.879 12.9706 67.243 13.1551 67.534C13.3375 67.824 13.6582 68 14.002 68H28.642C29.0299 68 29.3817 67.777 29.5481 67.428L37.5637 50.528C37.693 50.254 37.692 49.937 37.5587 49.665L30.2197 34.553ZM64.9953 66H52.6587L32.8668 24.57C32.7014 24.222 32.3486 24 31.9617 24H23.89L23.899 14H39.7197L59.4204 55.429C59.5858 55.777 59.9386 56 60.3255 56H64.9953V66ZM65.9977 54H60.96L41.2593 12.571C41.0939 12.223 40.7411 12 40.3532 12H22.8977C22.3454 12 21.8964 12.447 21.8954 12.999L21.8843 24.999C21.8843 25.265 21.9886 25.519 22.178 25.707C22.3654 25.895 22.62 26 22.8867 26H31.3292L51.1222 67.43C51.2885 67.778 51.6394 68 52.0263 68H65.9977C66.552 68 67 67.552 67 67V55C67 54.448 66.552 54 65.9977 54Z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="aws-dynamodb" viewBox="0 0 80 80">
+      <rect width="80" height="80" fill="#3B48CC"/>
+      <ellipse cx="40" cy="22" rx="22" ry="8" fill="none" stroke="#fff" stroke-width="3"/>
+      <path d="M18 22V58C18 62.4 27.8 66 40 66C52.2 66 62 62.4 62 58V22" fill="none" stroke="#fff" stroke-width="3"/>
+      <path d="M18 40C18 44.4 27.8 48 40 48C52.2 48 62 44.4 62 40" fill="none" stroke="#fff" stroke-width="3"/>
     </symbol>
 
     <symbol id="aws-cognito" viewBox="0 0 80 80">
@@ -45,12 +52,12 @@
     </style>
   </defs>
 
-  <rect width="1600" height="760" fill="#ffffff"/>
-  <text class="title" x="800" y="48" text-anchor="middle">Jarvis · current AWS architecture</text>
+  <rect width="1600" height="1080" fill="#ffffff"/>
+  <text class="title" x="800" y="48" text-anchor="middle">Jarvis · current implementation</text>
 
   <!-- AWS boundaries -->
-  <rect x="400" y="82" width="1140" height="606" rx="6" fill="#ffffff" stroke="#232f3e" stroke-width="2" stroke-dasharray="8 6"/>
-  <rect x="424" y="107" width="1092" height="557" rx="4" fill="#f8fbff" stroke="#147eba" stroke-width="2"/>
+  <rect x="400" y="82" width="1140" height="700" rx="6" fill="#ffffff" stroke="#232f3e" stroke-width="2" stroke-dasharray="8 6"/>
+  <rect x="424" y="107" width="1092" height="650" rx="4" fill="#f8fbff" stroke="#147eba" stroke-width="2"/>
   <rect x="420" y="72" width="128" height="28" fill="#ffffff"/>
   <text class="boundary-label" x="432" y="93">AWS Cloud</text>
   <rect x="446" y="97" width="185" height="28" fill="#f8fbff"/>
@@ -69,7 +76,7 @@
     <rect x="199" y="270" width="136" height="73" rx="2" fill="#eef4fa" stroke="#545b64" stroke-width="2"/>
     <path d="M238 382H296M251 367V382M283 367V382" fill="none" stroke="#545b64" stroke-width="3" stroke-linecap="round"/>
     <text class="service" x="267" y="416" text-anchor="middle">MCP client</text>
-    <text class="detail" x="267" y="438" text-anchor="middle">Claude or any MCP agent</text>
+    <text class="detail" x="267" y="438" text-anchor="middle">ChatGPT · Claude</text>
   </g>
 
   <!-- AWS services -->
@@ -78,7 +85,9 @@
     <text class="service" x="620" y="373" text-anchor="middle">Amazon API Gateway</text>
     <text class="detail" x="620" y="395" text-anchor="middle">HTTP API · $default stage</text>
     <text class="route" x="620" y="425" text-anchor="middle">GET /.well-known/.../mcp  [public]</text>
-    <text class="route" x="620" y="448" text-anchor="middle">ANY /mcp  [JWT authorizer]</text>
+    <text class="route" x="620" y="448" text-anchor="middle">GET /.well-known/...-server  [public]</text>
+    <text class="route" x="620" y="471" text-anchor="middle">ANY /mcp  [JWT authorizer]</text>
+    <text class="route" x="620" y="494" text-anchor="middle">GET /oauth/google/callback  [public · main]</text>
   </g>
 
   <g aria-label="AWS Lambda">
@@ -87,6 +96,23 @@
     <text class="detail" x="980" y="395" text-anchor="middle">Jarvis MCP server</text>
     <text class="detail" x="980" y="416" text-anchor="middle">Python 3.13 · arm64</text>
     <text class="detail" x="980" y="437" text-anchor="middle">Stateless HTTP · JSON</text>
+    <text class="detail" x="980" y="458" text-anchor="middle">capture_workitem · hello</text>
+    <text class="detail" x="980" y="479" text-anchor="middle">connect_google_calendar</text>
+  </g>
+
+  <g aria-label="Amazon DynamoDB">
+    <use href="#aws-dynamodb" x="932" y="545" width="96" height="96"/>
+    <text class="service" x="980" y="670" text-anchor="middle">Amazon DynamoDB</text>
+    <text class="detail" x="980" y="692" text-anchor="middle">jarvis-dynamodb · on demand</text>
+    <text class="detail" x="980" y="713" text-anchor="middle">Work items · pending OAuth · tokens</text>
+    <text class="detail" x="980" y="734" text-anchor="middle">User-linked records · status GSI · PITR</text>
+  </g>
+
+  <g aria-label="AWS Systems Manager Parameter Store">
+    <rect x="1200" y="545" width="270" height="106" rx="6" fill="#fff" stroke="#475569" stroke-width="2"/>
+    <text class="service" x="1335" y="577" text-anchor="middle">Parameter Store</text>
+    <text class="detail" x="1335" y="604" text-anchor="middle">Shared Google OAuth client</text>
+    <text class="detail" x="1335" y="627" text-anchor="middle">Managed outside Terraform</text>
   </g>
 
   <g aria-label="Amazon CloudWatch">
@@ -98,9 +124,9 @@
   </g>
 
   <g aria-label="Amazon Cognito">
-    <use href="#aws-cognito" x="572" y="510" width="96" height="96"/>
-    <text class="service" x="620" y="633" text-anchor="middle">Amazon Cognito</text>
-    <text class="detail" x="620" y="653" text-anchor="middle">User Pool · hosted login</text>
+    <use href="#aws-cognito" x="572" y="555" width="96" height="96"/>
+    <text class="service" x="620" y="678" text-anchor="middle">Amazon Cognito</text>
+    <text class="detail" x="620" y="700" text-anchor="middle">User Pool · hosted login</text>
   </g>
 
   <!-- Connections -->
@@ -113,15 +139,23 @@
   <path d="M668 295H917" fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrow)"/>
   <rect x="744" y="267" width="98" height="24" rx="4" fill="#f8fbff"/>
   <text class="edge" x="793" y="284" text-anchor="middle">AWS_PROXY</text>
-  <text class="detail" x="793" y="321" text-anchor="middle">Both routes invoke the same function</text>
+  <text class="detail" x="793" y="321" text-anchor="middle">All routes share one integration</text>
 
-  <path d="M350 353C410 466 475 558 557 558" fill="none" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-start)" marker-end="url(#arrow-blue)"/>
-  <rect x="376" y="458" width="174" height="25" rx="4" fill="#fff"/>
-  <text class="edge" x="463" y="476" text-anchor="middle" fill="#2563eb">OAuth 2.1 + PKCE</text>
+  <path d="M350 353C410 466 475 603 557 603" fill="none" stroke="#2563eb" stroke-width="3" marker-start="url(#arrow-blue-start)" marker-end="url(#arrow-blue)"/>
+  <rect x="363" y="525" width="202" height="25" rx="4" fill="#fff"/>
+  <text class="edge" x="464" y="543" text-anchor="middle" fill="#2563eb">Authorization Code + PKCE</text>
 
-  <path d="M620 510V463" fill="none" stroke="#64748b" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
-  <rect x="640" y="471" width="104" height="23" rx="3" fill="#f8fbff"/>
-  <text class="detail" x="692" y="488" text-anchor="middle">issuer · JWKS</text>
+  <path d="M620 555V511" fill="none" stroke="#64748b" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+  <rect x="640" y="519" width="104" height="23" rx="3" fill="#f8fbff"/>
+  <text class="detail" x="692" y="536" text-anchor="middle">issuer · JWKS</text>
+
+  <path d="M980 491V530" fill="none" stroke="#3B48CC" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="996" y="497" width="150" height="23" rx="3" fill="#f8fbff"/>
+  <text class="detail" x="1071" y="514" text-anchor="middle">PutItem · DeleteItem</text>
+
+  <path d="M1028 342H1165V593H1185" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <rect x="1190" y="498" width="132" height="23" rx="3" fill="#f8fbff"/>
+  <text class="detail" x="1256" y="515" text-anchor="middle">GetParameter</text>
 
   <path d="M620 247V195H1330V232" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-dasharray="3 6" marker-end="url(#arrow)"/>
   <rect x="868" y="181" width="134" height="24" rx="4" fill="#f8fbff"/>
@@ -130,4 +164,36 @@
   <path d="M1028 325H1267" fill="none" stroke="#e7157b" stroke-width="2.5" stroke-dasharray="3 6" marker-end="url(#arrow)"/>
   <rect x="1080" y="297" width="126" height="24" rx="4" fill="#f8fbff"/>
   <text class="edge" x="1143" y="314" text-anchor="middle">Function logs</text>
+
+  <text class="detail" x="800" y="809" text-anchor="middle">Main resource names shown · branch APIs omit the public Google callback</text>
+
+  <!-- Existing Google OAuth behaviour, separate from Cognito sign-in. -->
+  <g aria-label="Current Google OAuth browser flow">
+    <text class="service" x="800" y="853" text-anchor="middle">Google Calendar connection · current browser flow</text>
+    <g fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5">
+      <rect x="45" y="883" width="315" height="110" rx="6"/>
+      <rect x="440" y="883" width="300" height="110" rx="6"/>
+      <rect x="820" y="883" width="315" height="110" rx="6"/>
+      <rect x="1215" y="883" width="340" height="110" rx="6"/>
+    </g>
+    <text class="service" x="202" y="915" text-anchor="middle">1 · MCP tool</text>
+    <text class="detail" x="202" y="941" text-anchor="middle">Save pending OAuth in DynamoDB</text>
+    <text class="detail" x="202" y="966" text-anchor="middle">Return URL; tool call ends</text>
+    <text class="service" x="590" y="915" text-anchor="middle">2 · Google in browser</text>
+    <text class="detail" x="590" y="941" text-anchor="middle">Choose account and grant access</text>
+    <text class="detail" x="590" y="966" text-anchor="middle">Authorization Code + PKCE</text>
+    <text class="service" x="977" y="915" text-anchor="middle">3 · Jarvis callback</text>
+    <text class="detail" x="977" y="941" text-anchor="middle">Main forwards branch callbacks</text>
+    <text class="detail" x="977" y="966" text-anchor="middle">Exchange code; store credentials</text>
+    <text class="service" x="1385" y="915" text-anchor="middle">4 · Browser result</text>
+    <text class="detail" x="1385" y="941" text-anchor="middle">HTML success or error</text>
+    <text class="detail" x="1385" y="966" text-anchor="middle">No callback result sent to the chat</text>
+    <path d="M360 938H424" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <path d="M740 938H804" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <path d="M1135 938H1199" fill="none" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <text class="detail" x="400" y="923" text-anchor="middle">URL</text>
+    <text class="detail" x="780" y="923" text-anchor="middle">code/state</text>
+    <text class="detail" x="1175" y="923" text-anchor="middle">HTML</text>
+  </g>
+  <text class="detail" x="800" y="1040" text-anchor="middle">Repository review · 2026-11-09 · Google Calendar API operations and MCP elicitation are not implemented</text>
 </svg>
