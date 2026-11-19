@@ -14,18 +14,36 @@ FIXED_MOMENT = datetime(2026, 9, 18, 10, 12, 0, tzinfo=UTC)
 
 
 class FakeTable:
-    """Record DynamoDB writes in memory and optionally fail on demand."""
+    """Record DynamoDB requests and return configurable query pages."""
 
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
+
+        # Keep write and query requests separate for test assertions.
         self.calls: list[dict[str, Any]] = []
+        self.query_calls: list[dict[str, Any]] = []
+
+        # Tests can configure the pages returned by successive query calls.
+        self.query_pages: list[dict[str, Any]] = []
 
     def put_item(self, **kwargs: Any) -> None:
-        """Record the PutItem arguments, then raise the configured error."""
+        """Record a write request and optionally simulate a failure."""
         self.calls.append(kwargs)
 
         if self.error:
             raise self.error
+
+    def query(self, **kwargs: Any) -> dict[str, Any]:
+        """Return the next configured page or an empty final page."""
+        self.query_calls.append(kwargs)
+
+        if self.error:
+            raise self.error
+
+        if self.query_pages:
+            return self.query_pages.pop(0)
+
+        return {"Items": []}
 
 
 @pytest.fixture

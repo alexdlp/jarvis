@@ -3,9 +3,10 @@
 import pytest
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from jarvis.domain import WorkItem
+from jarvis.domain import WorkItem, Kind, Status
 from jarvis.storage.dynamodb import PersistenceError, WorkItemAlreadyExists
 from jarvis.storage.work_items import WorkItemRepository
+from jarvis.storage.mapping import to_item
 
 
 def client_error(code: str) -> ClientError:
@@ -92,3 +93,189 @@ def test_an_injected_table_needs_no_environment(
     monkeypatch.delenv("JARVIS_TABLE_NAME", raising=False)
 
     WorkItemRepository(fake_table).create(user_id, WorkItem(title="Aprender CUDA"))
+
+def test_list_for_user_returns_empty_list(fake_table, user_id: str):
+    """A user without work items receives an empty collection."""
+
+    # The shared fake returns an empty page unless a test configures results.
+    repository = WorkItemRepository(fake_table)
+
+    result = repository.list_for_user(user_id)
+
+    assert result == []
+
+    # Verify that the repository actually queried the table.
+    assert len(fake_table.query_calls) == 1
+
+def test_list_for_user_returns_work_items(
+    fake_table,
+    user_id: str,
+    work_item_factory,
+):
+    """Return complete work items regardless of their kind."""
+
+    idea = work_item_factory(
+        kind=Kind.IDEA,
+        title="Explore a new project",
+        description="Keep this detail when reading the item.",
+    )
+    task = work_item_factory(
+        kind=Kind.TASK,
+        title="Review the documentation",
+    )
+
+    # Configure one final page using the actual storage representation.
+    fake_table.query_pages = [
+        {
+            "Items": [
+                to_item(user_id, idea),
+                to_item(user_id, task),
+            ],
+        },
+    ]
+
+    repository = WorkItemRepository(fake_table)
+
+    result = repository.list_for_user(user_id)
+
+    # Model equality checks every field, including identifiers and timestamps.
+    assert result == [idea, task]
+
+def test_list_for_user_filters_by_kind_independently_of_status(
+    fake_table,
+    user_id: str,
+    work_item_factory,
+):
+    """Filter by kind without imposing a status restriction."""
+
+    inbox_task = work_item_factory(
+        kind=Kind.TASK,
+        status=Status.INBOX,
+    )
+    active_task = work_item_factory(
+        kind=Kind.TASK,
+        status=Status.ACTIVE,
+    )
+    idea = work_item_factory(
+        kind=Kind.IDEA,
+        status=Status.INBOX,
+    )
+
+    # Include different kinds and statuses in the same query response.
+    stored_items = [inbox_task, active_task, idea]
+    fake_table.query_pages = [
+        {"Items": [to_item(user_id, item) for item in stored_items]},
+    ]
+
+    repository = WorkItemRepository(fake_table)
+
+    result = repository.list_for_user(user_id, kind=Kind.TASK)
+
+    # Both tasks match, regardless of their status. The idea is excluded.
+    assert result == [inbox_task, active_task]
+
+def test_list_for_user_filters_by_status_independently_of_kind(
+    fake_table,
+    user_id: str,
+    work_item_factory,
+):
+    """Filter by status without imposing a kind restriction."""
+
+    inbox_idea = work_item_factory(
+        kind=Kind.IDEA,
+        status=Status.INBOX,
+    )
+    inbox_task = work_item_factory(
+        kind=Kind.TASK,
+        status=Status.INBOX,
+    )
+    active_task = work_item_factory(
+        kind=Kind.TASK,
+        status=Status.ACTIVE,
+    )
+
+    # Include an active task to verify that the status filter excludes it.
+    stored_items = [inbox_idea, inbox_task, active_task]
+    fake_table.query_pages = [
+        {"Items": [to_item(user_id, item) for item in stored_items]},
+    ]
+
+    repository = WorkItemRepository(fake_table)
+
+    result = repository.list_for_user(
+        user_id,
+        statuses={Status.INBOX},
+    )
+
+    # Inbox includes both the idea and the task.
+    assert result == [inbox_idea, inbox_task]
+
+def test_list_for_user_continues_after_a_page_without_matches(
+    fake_table,
+    user_id: str,
+    work_item_factory,
+):
+    """Continue pagination even when an earlier page has no matching items."""
+
+    idea = work_item_factory(kind=Kind.IDEA)
+    task = work_item_factory(kind=Kind.TASK)
+
+    stored_idea = to_item(user_id, idea)
+    last_key = {
+        "pk": stored_idea["pk"],
+        "sk": stored_idea["sk"],
+    }
+
+    # The first page contains no tasks, but indicates another page exists.
+    fake_table.query_pages = [
+        {
+            "Items": [stored_idea],
+            "LastEvaluatedKey": last_key,
+        },
+        {
+            "Items": [to_item(user_id, task)],
+        },
+    ]
+
+    repository = WorkItemRepository(fake_table)
+
+    result = repository.list_for_user(user_id, kind=Kind.TASK)
+
+    assert result == [task]
+
+    # Verify that the next request resumes from the returned cursor.
+    assert len(fake_table.query_calls) == 2
+    assert "ExclusiveStartKey" not in fake_table.query_calls[0]
+    assert fake_table.query_calls[1]["ExclusiveStartKey"] == last_key
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ClientError(
+            {
+                "Error": {
+                    "Code": "AccessDeniedException",
+                    "Message": "Access denied",
+                },
+            },
+            "Query",
+        ),
+        NoCredentialsError(),
+    ],
+)
+def test_list_for_user_translates_storage_errors(
+    fake_table,
+    user_id: str,
+    error,
+):
+    """Expose query failures through the repository's error contract."""
+
+    # Simulate either a service rejection or a local credentials failure.
+    fake_table.error = error
+    repository = WorkItemRepository(fake_table)
+
+    with pytest.raises(PersistenceError) as raised:
+        repository.list_for_user(user_id)
+
+    # Preserve the original exception for debugging.
+    assert raised.value.__cause__ is error
