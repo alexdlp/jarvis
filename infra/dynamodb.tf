@@ -13,7 +13,8 @@
 # these four key attributes are derived.
 
 resource "aws_dynamodb_table" "main" {
-  name = "jarvis-dynamodb"
+  # Preserve main's existing name and give each branch its own table.
+  name = "jarvis-dynamodb${local.resource_suffix}"
 
   # On-demand capacity matches this workload well: long idle periods followed
   # by short bursts of assistant activity. With PAY_PER_REQUEST there is no

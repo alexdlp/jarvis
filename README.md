@@ -74,11 +74,13 @@ make destroy
 `make destroy` targets the current branch's workspace and removes the resources
 managed there, including its user pool and DynamoDB table. Cognito users
 are created through the AWS CLI rather than declared as resources, so they never
-appear in a plan and an apply does not bring them back. Separate workspace state
-does not guarantee separate resource names: `infra/dynamodb.tf` currently uses
-the fixed table name `jarvis-dynamodb` in every workspace. The Lambda execution
-roles and shared Google OAuth parameter are managed outside this Terraform
-configuration.
+appear in a plan and an apply does not bring them back. Each branch's API,
+Lambda, Cognito pool and DynamoDB table use the workspace suffix; `main` keeps
+its existing resource names. Workspaces isolate Terraform state, while these
+names and resource references keep application resources separate. The state
+bucket, Lambda execution roles and shared Google OAuth parameter are managed
+outside this Terraform configuration; development branches share the existing
+development execution role.
 
 ## Updating the diagram
 
