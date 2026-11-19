@@ -301,6 +301,7 @@ resource "aws_cognito_user_pool_client" "chatgpt" {
   # documented. If it changes, this list is what has to be updated.
   callback_urls = [
     "https://chatgpt.com/connector/oauth/0NtCRcad5iLR",
+    "https://chatgpt.com/connector/oauth/v_8SfkWsV0VK"
   ]
 
   # Same lifetimes as the Claude client, restated so the security behaviour is
