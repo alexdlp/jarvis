@@ -6,6 +6,7 @@ from starlette.applications import Starlette
 
 from jarvis.interface import well_known, google_callback
 from jarvis.interface.tools import TOOLS
+from jarvis.interface.ui import apps
 
 
 def build_starlette_server() -> Starlette:
@@ -24,7 +25,7 @@ def build_starlette_server() -> Starlette:
     Returns a Starlette application rather than the MCP server itself — the
     server is an implementation detail of the assembly done here.
     """
-    mcp = MCPServer("Jarvis")
+    mcp = MCPServer("Jarvis", extensions=[apps])
 
     for tool in TOOLS:
         mcp.add_tool(tool)

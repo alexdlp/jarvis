@@ -5,7 +5,6 @@ authorizer, lambda, SDK, response — before there was anything real behind it.
 It stays until the backlog tools replace it as the obvious thing to call.
 """
 
-
 def hello() -> str:
     """Return a test greeting."""
     return "Hello from Jarvis"

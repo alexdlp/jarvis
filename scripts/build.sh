@@ -26,5 +26,9 @@ uv export --locked --no-dev --no-emit-project --format requirements.txt | \
 # its third-party dependencies.
 cp -R src/jarvis "$build_dir/jarvis"
 
+# Include the self-contained widget HTML files in the Lambda package.
+mkdir -p "$build_dir/jarvis/interface/ui_assets"
+cp web/dist/*.html "$build_dir/jarvis/interface/ui_assets/"
+
 package_size="$(du -sh "$build_dir" | cut -f1)"
 printf '  package ready %s\n' "$package_size"

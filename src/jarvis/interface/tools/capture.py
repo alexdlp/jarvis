@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Any
 
 from mcp.server.mcpserver.context import Context
 from pydantic import Field
 
 from jarvis.domain import Importance, Kind, Status, WorkItem
 from jarvis.interface.identity import get_authenticated_user_id
+from jarvis.interface.ui import TODO_WIDGET, apps
 from jarvis.logger import logger
 from jarvis.storage.work_items import WorkItemRepository
+from jarvis.storage.dynamodb import PersistenceError
 
 
+@apps.tool(resource_uri=TODO_WIDGET.uri)
 def capture_workitem(
     title: Annotated[
         str,
@@ -67,7 +70,7 @@ def capture_workitem(
             )
         ),
     ] = None,
-) -> dict:
+) -> dict[str, Any]:
     """Use this tool whenever the user wants to capture something to do, remember,
     consider, or attend.
 
@@ -96,10 +99,38 @@ def capture_workitem(
     # why there is no user_id parameter above for a model to fill in.
     user_id = get_authenticated_user_id(ctx)
 
-    WorkItemRepository().create(user_id, item)
+    repository = WorkItemRepository()
+    repository.create(user_id, item)
 
-    # Log only operational metadata. Titles, descriptions and tags may contain
-    # personal information and are not needed to confirm that capture worked.
+    # Log operational metadata without exposing the item's contents.
     logger.info("Captured work item id=%s status=%s", item.id, item.status)
 
-    return item.model_dump(mode="json")
+    response = {
+        "item": item.model_dump(mode="json"),
+        "items": None,
+        "list_error": None,
+    }
+
+    try:
+        # Retrieve the user's collection without restricting kind or status.
+        items = repository.list_for_user(user_id)
+
+    except PersistenceError:
+        # Capture has already succeeded. A listing failure must not imply
+        # that the caller should retry creating the same item.
+        logger.warning(
+            "Work item captured but collection retrieval failed id=%s",
+            item.id,
+        )
+        response["list_error"] = (
+            "The item was saved, but the collection could not be loaded."
+        )
+
+    else:
+        # Convert domain objects into JSON-compatible data for MCP clients.
+        response["items"] = [
+            work_item.model_dump(mode="json")
+            for work_item in items
+        ]
+
+    return response

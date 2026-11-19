@@ -9,7 +9,7 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help init plan apply destroy url outputs logs create-user list-users list-db build select-workspace
+.PHONY: help init plan apply destroy url outputs logs create-user list-users list-db build build-widgets select-workspace
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -58,6 +58,7 @@ help:
 	@printf "    $(GREEN)%-12s$(RESET) $(DIM)%s$(RESET)\n" "make destroy" "tear everything down"
 	@printf "    $(GREEN)%-14s$(RESET) $(DIM)%s$(RESET)\n" "make create-user" "create a cognito user (EMAIL=...)"
 	@printf "    $(GREEN)%-14s$(RESET) $(DIM)%s$(RESET)\n" "make list-users"  "list cognito users and their status"
+	@printf "    $(GREEN)%-18s$(RESET) $(DIM)%s$(RESET)\n" "make build-widgets" "type-check and build self-contained widget HTML files"
 	@printf "\n  $(BOLD)Configuration$(RESET)  $(DIM)override per run, e.g. make apply REGION=eu-west-3$(RESET)\n"
 	@printf "    $(BLUE)%-12s$(RESET) %s\n" "REGION" "$(REGION)"
 	@printf "\n"
@@ -130,6 +131,10 @@ create-user: select-workspace
 list-users: select-workspace 
 	@REGION="$(REGION)" ./scripts/list-users.sh
 
+## Compile each widget into a self-contained HTML file in web/dist/.
+build-widgets:
+	@npm run build --prefix web
+
 ## Assemble the Lambda deployment package in build/.
-build:
+build: build-widgets
 	@./scripts/build.sh
